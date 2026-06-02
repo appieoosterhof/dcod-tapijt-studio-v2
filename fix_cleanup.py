@@ -1,5 +1,0 @@
-code = open('app.py').read()
-code = code.replace('    print(f"DEBUG schaal: {motief_schaal}")\n', '')
-code = code.replace('        import traceback; traceback.print_exc(); print(f\'Mail fout: {e}\')', '        print(f\'Mail fout: {e}\')')
-open('app.py','w').write(code)
-print('debug regels verwijderd')
