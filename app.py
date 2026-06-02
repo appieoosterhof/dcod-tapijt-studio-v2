@@ -18,6 +18,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import anthropic
 from PIL import Image, ImageDraw
+from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg
 
 app = Flask(__name__)
 CORS(app)
@@ -292,12 +293,56 @@ STYLE_GENERATORS = {
     "persian": generate_medallion_svg,
     "classic": generate_medallion_svg,
     "abstract": generate_abstract_svg,
+    "strepen": generate_strepen_svg,
+    "mozaiek": generate_mozaiek_svg,
+    "chevron": generate_chevron_svg,
+    "hexagoon": generate_hexagoon_svg,
+    "ogee": generate_ogee_svg,
+    "diamant": generate_diamant_svg,
+    "terrazzo": generate_terrazzo_svg,
+    "vrije_vormen": generate_vrije_vormen_svg,
 }
 
 
 def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 100) -> str:
     """Bouw de SVG voor één basistegel."""
     style = analysis.get("style", "geometric")
+    p = analysis.get("_prompt", "")
+    if any(w in p for w in ["streep", "strepen", "stripe"]):
+        style = "strepen"
+    elif any(w in p for w in ["mozaiek", "pixel", "blokje"]):
+        style = "mozaiek"
+    elif any(w in p for w in ["chevron", "zigzag"]):
+        style = "chevron"
+    elif any(w in p for w in ["hexagoon", "honingraat", "zeshoek"]):
+        style = "hexagoon"
+    elif any(w in p for w in ["ogee", "schub", "dakpan"]):
+        style = "ogee"
+    elif any(w in p for w in ["diamant", "concentrisch"]):
+        style = "diamant"
+    elif any(w in p for w in ["terrazzo", "steensnipp"]):
+        style = "terrazzo"
+    elif any(w in p for w in ["vrije vorm", "organisch", "vloeiend"]):
+        style = "vrije_vormen"
+
+    # Directe keyword override op basis van prompt
+    prompt_lower = analysis.get("description_nl", "").lower()
+    if any(w in prompt_lower for w in ["streep", "strepen", "stripe", "verticale lijn"]):
+        style = "strepen"
+    elif any(w in prompt_lower for w in ["mozaiek", "pixel", "blokje"]):
+        style = "mozaiek"
+    elif any(w in prompt_lower for w in ["chevron", "zigzag", "pijl"]):
+        style = "chevron"
+    elif any(w in prompt_lower for w in ["hexagoon", "honingraat", "zeshoek"]):
+        style = "hexagoon"
+    elif any(w in prompt_lower for w in ["ogee", "schub", "dakpan"]):
+        style = "ogee"
+    elif any(w in prompt_lower for w in ["diamant", "concentrisch"]):
+        style = "diamant"
+    elif any(w in prompt_lower for w in ["terrazzo", "steensnipp"]):
+        style = "terrazzo"
+    elif any(w in prompt_lower for w in ["vrije vorm", "organisch", "vloeiend"]):
+        style = "vrije_vormen"
     palette = analysis.get("palette", {
         "background": "#F5E6D3", "primary": "#C4753A",
         "secondary": "#8B4513", "accent1": "#D4A055", "accent2": "#F0C080"
@@ -307,9 +352,16 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     # Schaal aanpassen: kleiner tile = fijner patroon
     tile_size = max(50, int(tile_size * (100 / max(motief_schaal, 10))))
     # Als gebruiker specifieke vormen vraagt, altijd geometric generator gebruiken
+    extra_styles = ["strepen","mozaiek","chevron","hexagoon","ogee","diamant","terrazzo","vrije_vormen"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
-    if user_specified or shape_list == ["circle"] or shape_list == ["square"] or shape_list == ["triangle"]:
+    if style in extra_styles:
+        generator = STYLE_GENERATORS.get(style)
+        try:
+            inner = generator(palette, tile_size, complexity, motief_schaal)
+        except TypeError:
+            inner = generator(palette, tile_size, complexity)
+    elif user_specified or shape_list == ["circle"] or shape_list == ["square"] or shape_list == ["triangle"]:
         inner = generate_geometric_svg(palette, tile_size, complexity, shape_list)
     else:
         generator = STYLE_GENERATORS.get(style, generate_geometric_svg)
@@ -413,6 +465,7 @@ def api_generate():
     try:
         # Stap 1: AI analyse
         analysis = analyse_prompt(prompt, api_key)
+        analysis["_prompt"] = prompt.lower()
         # Overschrijf palet als gebruiker eigen kleuren heeft opgegeven
         aangepast_palet = data.get('aangepast_palet')
         if aangepast_palet:
@@ -428,9 +481,27 @@ def api_generate():
     except Exception as e:
         return jsonify({"error": f"AI-fout: {str(e)}"}), 500
 
+    motief_schaal = int(data.get("motief_schaal", 100))
     try:
         # Stap 2: Genereer basistegel SVG
-        tile_svg = build_tile_svg(analysis, tile_size=400)
+        p = prompt.lower()
+        if any(w in p for w in ['streep', 'strepen', 'stripe']):
+            analysis['style'] = 'strepen'
+        elif any(w in p for w in ['mozaiek', 'pixel', 'blokje']):
+            analysis['style'] = 'mozaiek'
+        elif any(w in p for w in ['chevron', 'zigzag']):
+            analysis['style'] = 'chevron'
+        elif any(w in p for w in ['hexagoon', 'honingraat', 'zeshoek']):
+            analysis['style'] = 'hexagoon'
+        elif any(w in p for w in ['ogee', 'schub', 'dakpan']):
+            analysis['style'] = 'ogee'
+        elif any(w in p for w in ['diamant', 'concentrisch']):
+            analysis['style'] = 'diamant'
+        elif any(w in p for w in ['terrazzo', 'steensnipp']):
+            analysis['style'] = 'terrazzo'
+        elif any(w in p for w in ['vrije vorm', 'organisch', 'vloeiend']):
+            analysis['style'] = 'vrije_vormen'
+        tile_svg = build_tile_svg(analysis, tile_size=400, motief_schaal=motief_schaal)
 
         # Stap 3: Bouw all-over repeat
         repeat_svg = build_repeat_svg(tile_svg, analysis, tile_cm, repeat_type, dpi)
