@@ -70,12 +70,6 @@
           <button class="chip" onclick="setPrompt('Japandi minimalistisch, bamboe en natuurlijke lijnen, rustige tinten')">Japandi</button>
           <button class="chip" onclick="setPrompt('Art Deco geometrisch, goud en zwart, jaren 20 stijl')">Art Deco</button>
           <button class="chip" onclick="setPrompt('Terrazzo patroon, gekleurde steensnippers op lichte ondergrond')">Terrazzo</button>
-          <button class="chip" onclick="setPrompt('Strakke verticale strepen, strak en modern')">Strepen</button>
-          <button class="chip" onclick="setPrompt('Pixel mozaiek patroon, kleurrijke blokken')">Mozaiek</button>
-          <button class="chip" onclick="setPrompt('Chevron zigzag patroon, pijlvormen')">Chevron</button>
-          <button class="chip" onclick="setPrompt('Hexagonaal honingraat patroon')">Hexagoon</button>
-          <button class="chip" onclick="setPrompt('Ogee schubben dakpan patroon')">Ogee</button>
-          <button class="chip" onclick="setPrompt('Concentrische diamanten patroon')">Diamant</button>
         </div>
         <textarea id="prompt" rows="4" placeholder="bijv. 'Klassiek Perzisch medallion met donkerblauwe achtergrond en gouden accenten, hoge complexiteit'"></textarea>
       </section>
@@ -91,14 +85,6 @@
             <option value="60">60 × 60 cm</option>
             <option value="100">100 × 100 cm</option>
           </select>
-        </div>
-        <div class="field">
-          <label>Motief grootte (%)</label>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <input type="number" id="motiefSchaal" value="100" min="25" max="400" step="5"
-              style="width:90px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;text-align:center;">
-            <span style="font-size:13px;color:#999;">% &nbsp;(25% = fijn · 100% = normaal · 200% = groot)</span>
-          </div>
         </div>
         <div class="field">
           <label>Repeat type</label>
@@ -339,19 +325,19 @@
     <p style="color:#666;font-size:14px;">Uw dessin wordt doorgestuurd naar DCOD. Wij nemen binnen 2 werkdagen contact met u op.</p>
     <div style="margin-bottom:16px;">
       <label style="display:block;font-size:12px;font-weight:bold;margin-bottom:6px;">NAAM *</label>
-      <input id="bestelNaam" autocomplete="name" type="text" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;"/>
+      <input id="bestelNaam" type="text" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;"/>
     </div>
     <div style="margin-bottom:16px;">
       <label style="display:block;font-size:12px;font-weight:bold;margin-bottom:6px;">E-MAILADRES *</label>
-      <input id="bestelEmail" autocomplete="email" type="email" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;"/>
+      <input id="bestelEmail" type="email" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;"/>
     </div>
     <div style="margin-bottom:16px;">
       <label style="display:block;font-size:12px;font-weight:bold;margin-bottom:6px;">BEDRIJF / BUREAU</label>
-      <input id="bestelBedrijf" autocomplete="organization" type="text" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;" placeholder="Bedrijfs- of bureaunaam (optioneel)"/>
+      <input id="bestelBedrijf" type="text" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;" placeholder="Bedrijfs- of bureaunaam (optioneel)"/>
     </div>
     <div style="margin-bottom:16px;">
       <label style="display:block;font-size:12px;font-weight:bold;margin-bottom:6px;">TELEFOONNUMMER</label>
-      <input id="bestelTelefoon" autocomplete="tel" type="tel" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;"/>
+      <input id="bestelTelefoon" type="tel" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;"/>
     </div>
     <div style="margin-bottom:16px;">
       <label style="display:block;font-size:12px;font-weight:bold;margin-bottom:6px;">PRODUCT *</label>
@@ -398,21 +384,21 @@
       <div id="bestelAdresVeld" style="display:none;margin-top:12px;">
         <div style="margin-bottom:10px;">
           <label style="display:block;font-size:12px;color:#666;margin-bottom:4px;">STRAAT + HUISNUMMER</label>
-          <input id="bestelStraat" autocomplete="street-address" type="text" placeholder="Straat + huisnummer" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;"/>
+          <input id="bestelStraat" type="text" placeholder="Straat + huisnummer" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;"/>
         </div>
         <div style="display:flex;gap:10px;">
           <div style="flex:1;">
             <label style="display:block;font-size:12px;color:#666;margin-bottom:4px;">POSTCODE</label>
-            <input id="bestelPostcode" autocomplete="postal-code" type="text" placeholder="1234 AB" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;"/>
+            <input id="bestelPostcode" type="text" placeholder="1234 AB" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;"/>
           </div>
           <div style="flex:2;">
             <label style="display:block;font-size:12px;color:#666;margin-bottom:4px;">WOONPLAATS</label>
-            <input id="bestelPlaats" autocomplete="address-level2" type="text" placeholder="Woonplaats" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;"/>
+            <input id="bestelPlaats" type="text" placeholder="Woonplaats" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;"/>
           </div>
         </div>
         <div style="margin-top:10px;">
           <label style="display:block;font-size:12px;color:#666;margin-bottom:4px;">LAND</label>
-          <select id="bestelLand" autocomplete="country" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;">
+          <select id="bestelLand" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;">
             <option value="Nederland">Nederland</option>
             <option value="België">België</option>
             <option value="Duitsland">Duitsland</option>
@@ -435,6 +421,6 @@
     <p>RepeatTile Studio &nbsp;·&nbsp; Gegenereerde dessins zijn rechtenvrij voor uw eigen gebruik</p>
   </footer>
 
-  <script src="/static/js/app.js?v=1780404277"></script>
+  <script src="/static/js/app.js"></script>
 </body>
 </html>

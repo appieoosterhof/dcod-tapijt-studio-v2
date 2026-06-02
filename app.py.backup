@@ -295,7 +295,7 @@ STYLE_GENERATORS = {
 }
 
 
-def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 100) -> str:
+def build_tile_svg(analysis: dict, tile_size: int = 400) -> str:
     """Bouw de SVG voor één basistegel."""
     style = analysis.get("style", "geometric")
     palette = analysis.get("palette", {
@@ -304,8 +304,6 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     })
     complexity = analysis.get("complexity", "medium")
     shape_list = analysis.get("shapes", [])
-    # Schaal aanpassen: kleiner tile = fijner patroon
-    tile_size = max(50, int(tile_size * (100 / max(motief_schaal, 10))))
     # Als gebruiker specifieke vormen vraagt, altijd geometric generator gebruiken
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)

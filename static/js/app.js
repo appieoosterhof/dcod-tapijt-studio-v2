@@ -74,7 +74,7 @@ async function generate() {
     const response = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, api_key: apiKey, tile_cm: tileCm, repeat_type: repeatType, dpi, aangepast_palet: (document.getElementById('gebruikKleuren')?.checked ? { background: document.getElementById('kleur0')?.value, primary: document.getElementById('kleur1')?.value, secondary: document.getElementById('kleur2')?.value, accent1: document.getElementById('kleur3')?.value, accent2: document.getElementById('kleur4')?.value } : null) })
+      body: JSON.stringify({ prompt, api_key: apiKey, tile_cm: tileCm, repeat_type: repeatType, dpi, motief_schaal: (parseInt(document.getElementById('motiefSchaal')?.value) || 100), aangepast_palet: (document.getElementById('gebruikKleuren')?.checked ? { background: document.getElementById('kleur0')?.value, primary: document.getElementById('kleur1')?.value, secondary: document.getElementById('kleur2')?.value, accent1: document.getElementById('kleur3')?.value, accent2: document.getElementById('kleur4')?.value } : null) })
     });
 
     const data = await response.json();
@@ -347,6 +347,17 @@ function laadContactGegevens() {
   const naam = localStorage.getItem('bestel_naam') || '';
   const email = localStorage.getItem('bestel_email') || '';
   const telefoon = localStorage.getItem('bestel_telefoon') || '';
+  const bedrijf = localStorage.getItem('bestel_bedrijf') || '';
+  const straat = localStorage.getItem('bestel_straat') || '';
+  const postcode = localStorage.getItem('bestel_postcode') || '';
+  const plaats = localStorage.getItem('bestel_plaats') || '';
+  if (naam) document.getElementById('bestelNaam').value = naam;
+  if (email) document.getElementById('bestelEmail').value = email;
+  if (telefoon) document.getElementById('bestelTelefoon').value = telefoon;
+  if (bedrijf) document.getElementById('bestelBedrijf').value = bedrijf;
+  if (straat) document.getElementById('bestelStraat').value = straat;
+  if (postcode) document.getElementById('bestelPostcode').value = postcode;
+  if (plaats) document.getElementById('bestelPlaats').value = plaats;
   if (document.getElementById('bestelNaam')) document.getElementById('bestelNaam').value = naam;
   if (document.getElementById('bestelEmail')) document.getElementById('bestelEmail').value = email;
   if (document.getElementById('bestelTelefoon')) document.getElementById('bestelTelefoon').value = telefoon;
@@ -356,6 +367,14 @@ function slaContactGegevensOp(naam, email, telefoon) {
   localStorage.setItem('bestel_naam', naam);
   localStorage.setItem('bestel_email', email);
   localStorage.setItem('bestel_telefoon', telefoon);
+  const b = document.getElementById('bestelBedrijf')?.value || '';
+  const s = document.getElementById('bestelStraat')?.value || '';
+  const p = document.getElementById('bestelPostcode')?.value || '';
+  const pl = document.getElementById('bestelPlaats')?.value || '';
+  if (b) localStorage.setItem('bestel_bedrijf', b);
+  if (s) localStorage.setItem('bestel_straat', s);
+  if (p) localStorage.setItem('bestel_postcode', p);
+  if (pl) localStorage.setItem('bestel_plaats', pl);
 }
 
 // Staaltje tonen/verbergen
