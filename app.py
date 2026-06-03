@@ -491,7 +491,9 @@ def api_generate():
     try:
         # Stap 2: Genereer basistegel SVG
         p = prompt.lower()
-        if any(w in p for w in ['vlechtwerk', 'vlecht', 'gevlochten', 'basketweave']):
+        if any(w in p for w in ['botanisch', 'bloem', 'blad', 'botanical', 'plant', 'flora']):
+            analysis['style'] = 'botanical'
+        elif any(w in p for w in ['vlechtwerk', 'vlecht', 'gevlochten', 'basketweave']):
             analysis['style'] = 'vlechtwerk'
         elif any(w in p for w in ['visgraat', 'herringbone', 'visbot']):
             analysis['style'] = 'visgraat'
