@@ -26,17 +26,17 @@ def generate_strepen_svg(palette,tile_size,complexity):
 def generate_mozaiek_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     n = {'low': 8, 'medium': 14, 'high': 22}.get(complexity, 14)
-    b = T / n; rng = random.Random(2026)
+    b = T / n
+    gap = max(1, int(b * 0.06))
+    rng = random.Random(42)
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
-    for col in range(n + 1):
-        x = col * b; y = 0
-        while y < T:
-            h = rng.randint(int(b * 0.6), int(b * 2.2)); h = min(h, T - y)
-            kleur = k[(col + int(y / b)) % len(k)]
-            s.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{b-1:.1f}" height="{h-1:.1f}" fill="{kleur}"/>')
-            y += h
-    return '\n'.join(s)
-
+    for row in range(n):
+        y = row * b
+        for col in range(n):
+            x = col * b
+            kleur = k[rng.randint(1, len(k)-1)]
+            s.append(f'<rect x="{x+gap:.1f}" y="{y+gap:.1f}" width="{b-gap*2:.1f}" height="{b-gap*2:.1f}" fill="{kleur}"/>')
+    return chr(10).join(s)
 def generate_chevron_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     n = {'low': 5, 'medium': 8, 'high': 14}.get(complexity, 8)
@@ -77,19 +77,24 @@ def generate_hexagoon_svg(palette, tile_size, complexity):
 def generate_ogee_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     n = {'low': 3, 'medium': 5, 'high': 8}.get(complexity, 5)
-    b = T / n; h = b * 0.8; rs = h * 0.62
-    rows = math.ceil(T / rs) + 4
+    b = T / n; h = b * 0.8
+    rs_raw = h * 0.62
+    n_colors = len(k) - 1
+    n_rows_raw = max(1, round(T / rs_raw))
+    n_rows = round(n_rows_raw / n_colors) * n_colors
+    if n_rows == 0: n_rows = n_colors
+    rs = T / n_rows
+    offset = h * 0.42
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
-    for row in range(rows - 1, -2, -1):
-        kleur = k[1 + (row % (len(k) - 1))]
+    for row in range(n_rows + 2, -2, -1):
+        kleur = k[1 + (row % n_colors)]
+        y0 = row * rs - offset
         for col in range(-1, n + 2):
             x = col * b + (b / 2 if row % 2 else 0) - b
-            y = row * rs - h * 0.3
             cx = x + b / 2
-            d = f'M {x:.1f} {y+h:.1f} Q {cx:.1f} {y-h*0.1:.1f} {x+b:.1f} {y+h:.1f} Q {x+b+b*0.1:.1f} {y+h*1.8:.1f} {cx:.1f} {y+h*1.75:.1f} Q {x-b*0.1:.1f} {y+h*1.8:.1f} {x:.1f} {y+h:.1f} Z'
+            d = 'M %.1f %.1f Q %.1f %.1f %.1f %.1f Q %.1f %.1f %.1f %.1f Q %.1f %.1f %.1f %.1f Z' % (x, y0+h, cx, y0-h*0.1, x+b, y0+h, x+b+b*0.1, y0+h+rs-h*0.12, cx, y0+h+rs-h*0.15, x-b*0.1, y0+h+rs-h*0.12, x, y0+h)
             s.append(f'<path d="{d}" fill="{kleur}" stroke="{k[0]}" stroke-width="0.5"/>')
-    return '\n'.join(s)
-
+    return chr(10).join(s)
 def generate_diamant_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     nc = {'low': 2, 'medium': 3, 'high': 4}.get(complexity, 3)
