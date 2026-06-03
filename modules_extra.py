@@ -241,3 +241,20 @@ def generate_visgraat_svg6(palette, tile_size, complexity):
     s.append('</defs>')
     s.append('<rect width="' + str(T) + '" height="' + str(T) + '" fill="url(#hb)"/>')
     return '\n'.join(s)
+
+
+def generate_dots_svg(palette, tile_size, complexity):
+    T = tile_size; k = _palet(palette)
+    n = {'low': 4, 'medium': 6, 'high': 9}.get(complexity, 6)
+    step = T / n
+    r = step * 0.35
+    s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
+    for row in range(n + 1):
+        for col in range(n + 1):
+            cx = col * step
+            cy = row * step
+            if row % 2 == 1:
+                cx += step / 2
+            kleur = k[1 + ((row + col) % (len(k) - 1))]
+            s.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" fill="{kleur}"/>')
+    return "\n".join(s)
