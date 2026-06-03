@@ -358,7 +358,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     # Schaal aanpassen: kleiner tile = fijner patroon
     tile_size = max(50, int(tile_size * (100 / max(motief_schaal, 10))))
     # Als gebruiker specifieke vormen vraagt, altijd geometric generator gebruiken
-    extra_styles = ["strepen","mozaiek","chevron","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","vlechtwerk","visgraat","batik"]
+    extra_styles = ["strepen","mozaiek","chevron","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
     if style in extra_styles:
