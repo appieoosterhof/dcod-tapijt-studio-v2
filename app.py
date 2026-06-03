@@ -232,33 +232,34 @@ def generate_medallion_svg(palette: dict, tile_size: int, complexity: str) -> st
 
 def generate_nordic_svg(palette: dict, tile_size: int, complexity: str) -> str:
     T = tile_size
+    bg = palette["background"]
     c1 = palette["primary"]
     c2 = palette["secondary"]
     c3 = palette["accent1"]
-    c4 = palette["accent2"]
     shapes = []
-    step = T // 6 if complexity == "high" else T // 4
-    # Ruitpatroon
+    step = T // 6 if complexity == "high" else T // 5 if complexity == "medium" else T // 4
+    arm = step * 0.38
+    w = step * 0.13
+    # Achtergrondvlakken afwisselend
     for row in range(-1, T // step + 2):
         for col in range(-1, T // step + 2):
-            cx = col * step + (step // 2 if row % 2 else 0)
-            cy = row * step
-            r = step * 0.4
-            diamond = [f"{cx:.1f},{cy-r:.1f}", f"{cx+r:.1f},{cy:.1f}",
-                       f"{cx:.1f},{cy+r:.1f}", f"{cx-r:.1f},{cy:.1f}"]
-            fill = c1 if (row + col) % 3 == 0 else c3 if (row + col) % 3 == 1 else c4
-            shapes.append(f'<polygon points="{" ".join(diamond)}" fill="{fill}" stroke="{c2}" stroke-width="1"/>')
-    # Sneeuwvlok-accenten
-    for row in range(0, T, step * 2):
-        for col in range(0, T, step * 2):
-            for angle in range(0, 360, 60):
-                rad = math.radians(angle)
-                x2 = col + step * 0.9 * math.cos(rad)
-                y2 = row + step * 0.9 * math.sin(rad)
-                shapes.append(f'<line x1="{col}" y1="{row}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{c2}" stroke-width="1.5"/>')
+            x = col * step
+            y = row * step
+            fill = c1 if (row + col) % 2 == 0 else c2
+            shapes.append(f'<rect x="{x}" y="{y}" width="{step}" height="{step}" fill="{fill}"/>')
+    # Nordic kruis op elk rasterpunt
+    for row in range(0, T + step, step):
+        for col in range(0, T + step, step):
+            cx = col
+            cy = row
+            bg_kleur = c2 if ((row // step) + (col // step)) % 2 == 0 else c1
+            # Verticale arm van het kruis
+            shapes.append(f'<rect x="{cx-w:.1f}" y="{cy-arm:.1f}" width="{w*2:.1f}" height="{arm*2:.1f}" fill="{bg_kleur}"/>')
+            # Horizontale arm
+            shapes.append(f'<rect x="{cx-arm:.1f}" y="{cy-w:.1f}" width="{arm*2:.1f}" height="{w*2:.1f}" fill="{bg_kleur}"/>')
+            # Accent stipje
+            shapes.append(f'<rect x="{cx-w*0.6:.1f}" y="{cy-w*0.6:.1f}" width="{w*1.2:.1f}" height="{w*1.2:.1f}" fill="{c3}"/>')
     return "\n".join(shapes)
-
-
 def generate_abstract_svg(palette: dict, tile_size: int, complexity: str) -> str:
     T = tile_size
     c1 = palette["primary"]
@@ -296,7 +297,7 @@ STYLE_GENERATORS = {
     "strepen": generate_strepen_svg,
     "mozaiek": generate_mozaiek_svg,
     "chevron": generate_chevron_svg,
-    "hexagoon": generate_hexagoon_svg,
+    "hexagon": generate_hexagoon_svg,
     "ogee": generate_ogee_svg,
     "diamant": generate_diamant_svg,
     "terrazzo": generate_terrazzo_svg,
@@ -314,10 +315,12 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "mozaiek"
     elif any(w in p for w in ["chevron", "zigzag"]):
         style = "chevron"
-    elif any(w in p for w in ["hexagoon", "honingraat", "zeshoek"]):
-        style = "hexagoon"
+    elif any(w in p for w in ["hexagon", "honingraat", "zeshoek"]):
+        style = "hexagon"
     elif any(w in p for w in ["ogee", "schub", "dakpan"]):
         style = "ogee"
+    elif any(w in p for w in ["nordic", "scandinavisch", "noors", "kruis", "sneeuwvlok"]):
+        style = "nordic"
     elif any(w in p for w in ["diamant", "concentrisch"]):
         style = "diamant"
     elif any(w in p for w in ["terrazzo", "steensnipp"]):
@@ -333,10 +336,12 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "mozaiek"
     elif any(w in prompt_lower for w in ["chevron", "zigzag", "pijl"]):
         style = "chevron"
-    elif any(w in prompt_lower for w in ["hexagoon", "honingraat", "zeshoek"]):
-        style = "hexagoon"
+    elif any(w in prompt_lower for w in ["hexagon", "honingraat", "zeshoek"]):
+        style = "hexagon"
     elif any(w in prompt_lower for w in ["ogee", "schub", "dakpan"]):
         style = "ogee"
+    elif any(w in prompt_lower for w in ["nordic", "scandinavisch", "noors", "kruis", "ruitpatroon"]):
+        style = "nordic"
     elif any(w in prompt_lower for w in ["diamant", "concentrisch"]):
         style = "diamant"
     elif any(w in prompt_lower for w in ["terrazzo", "steensnipp"]):
@@ -352,7 +357,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     # Schaal aanpassen: kleiner tile = fijner patroon
     tile_size = max(50, int(tile_size * (100 / max(motief_schaal, 10))))
     # Als gebruiker specifieke vormen vraagt, altijd geometric generator gebruiken
-    extra_styles = ["strepen","mozaiek","chevron","hexagoon","ogee","diamant","terrazzo","vrije_vormen"]
+    extra_styles = ["strepen","mozaiek","chevron","hexagon","ogee","diamant","terrazzo","vrije_vormen"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
     if style in extra_styles:
@@ -383,7 +388,7 @@ def build_repeat_svg(tile_svg: str, analysis: dict,
                      dpi: int, cols: int = 3, rows: int = 3) -> str:
     """Bouw een all-over repeat SVG met het opgegeven repeat-type."""
     T = 400
-    bg_color = analysis.get('background_color', '#F5F5F5')
+    bg_color = analysis.get('palette', {}).get('background', '#F5F5F5')
     total_w = T * cols
     total_h = T * rows
 
@@ -491,10 +496,12 @@ def api_generate():
             analysis['style'] = 'mozaiek'
         elif any(w in p for w in ['chevron', 'zigzag']):
             analysis['style'] = 'chevron'
-        elif any(w in p for w in ['hexagoon', 'honingraat', 'zeshoek']):
-            analysis['style'] = 'hexagoon'
+        elif any(w in p for w in ['hexagon', 'honingraat', 'zeshoek']):
+            analysis['style'] = 'hexagon'
         elif any(w in p for w in ['ogee', 'schub', 'dakpan']):
             analysis['style'] = 'ogee'
+        elif any(w in p for w in ['nordic', 'scandinavisch', 'noors', 'kruis', 'sneeuwvlok']):
+            analysis['style'] = 'nordic'
         elif any(w in p for w in ['diamant', 'concentrisch']):
             analysis['style'] = 'diamant'
         elif any(w in p for w in ['terrazzo', 'steensnipp']):
