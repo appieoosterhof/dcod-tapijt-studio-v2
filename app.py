@@ -18,7 +18,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import anthropic
 from PIL import Image, ImageDraw
-from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg
+from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_visgraat_svg2
 
 app = Flask(__name__)
 CORS(app)
@@ -301,6 +301,7 @@ STYLE_GENERATORS = {
     "ogee": generate_ogee_svg,
     "diamant": generate_diamant_svg,
     "terrazzo": generate_terrazzo_svg,
+    "visgraat": generate_visgraat_svg2,
     "vrije_vormen": generate_vrije_vormen_svg,
 }
 
@@ -357,7 +358,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     # Schaal aanpassen: kleiner tile = fijner patroon
     tile_size = max(50, int(tile_size * (100 / max(motief_schaal, 10))))
     # Als gebruiker specifieke vormen vraagt, altijd geometric generator gebruiken
-    extra_styles = ["strepen","mozaiek","chevron","hexagon","ogee","diamant","terrazzo","vrije_vormen"]
+    extra_styles = ["strepen","mozaiek","chevron","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","vlechtwerk","visgraat","batik"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
     if style in extra_styles:
@@ -490,7 +491,11 @@ def api_generate():
     try:
         # Stap 2: Genereer basistegel SVG
         p = prompt.lower()
-        if any(w in p for w in ['streep', 'strepen', 'stripe']):
+        if any(w in p for w in ['vlechtwerk', 'vlecht', 'gevlochten', 'basketweave']):
+            analysis['style'] = 'vlechtwerk'
+        elif any(w in p for w in ['visgraat', 'herringbone', 'visbot']):
+            analysis['style'] = 'visgraat'
+        elif any(w in p for w in ['streep', 'strepen', 'stripe']):
             analysis['style'] = 'strepen'
         elif any(w in p for w in ['mozaiek', 'pixel', 'blokje']):
             analysis['style'] = 'mozaiek'
@@ -504,6 +509,14 @@ def api_generate():
             analysis['style'] = 'nordic'
         elif any(w in p for w in ['diamant', 'concentrisch']):
             analysis['style'] = 'diamant'
+        elif any(w in p for w in ['batik', 'mirror', 'spiegel', 'tie-dye', 'ikat']):
+            analysis['style'] = 'batik'
+        elif any(w in p for w in ['vlechtwerk', 'vlecht', 'gevlochten', 'basketweave']):
+            analysis['style'] = 'vlechtwerk'
+        elif any(w in p for w in ['visgraat', 'herringbone', 'visbot']):
+            analysis['style'] = 'visgraat'
+        elif any(w in p for w in ['dots', 'stippen', 'polka']):
+            analysis['style'] = 'dots'
         elif any(w in p for w in ['terrazzo', 'steensnipp']):
             analysis['style'] = 'terrazzo'
         elif any(w in p for w in ['vrije vorm', 'organisch', 'vloeiend']):

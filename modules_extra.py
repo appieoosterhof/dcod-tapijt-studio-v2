@@ -26,18 +26,16 @@ def generate_strepen_svg(palette,tile_size,complexity):
 def generate_mozaiek_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     n = {'low': 8, 'medium': 14, 'high': 22}.get(complexity, 14)
-    b = T / n  # blokgrootte
-    gap = max(1, int(b * 0.06))
-    rng = random.Random(42)
+    b = T / n; rng = random.Random(2026)
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
-    # Vast raster: elke cel is b x b, kleur willekeurig per cel
-    for row in range(n):
-        y = row * b
-        for col in range(n):
-            x = col * b
-            kleur = k[rng.randint(1, len(k)-1)]
-            s.append(f'<rect x="{x+gap:.1f}" y="{y+gap:.1f}" width="{b-gap*2:.1f}" height="{b-gap*2:.1f}" fill="{kleur}"/>')
-    return "\n".join(s)
+    for col in range(n + 1):
+        x = col * b; y = 0
+        while y < T:
+            h = rng.randint(int(b * 0.6), int(b * 2.2)); h = min(h, T - y)
+            kleur = k[(col + int(y / b)) % len(k)]
+            s.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{b-1:.1f}" height="{h-1:.1f}" fill="{kleur}"/>')
+            y += h
+    return '\n'.join(s)
 
 def generate_chevron_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
@@ -62,91 +60,59 @@ def generate_chevron_svg(palette, tile_size, complexity):
 def generate_hexagoon_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     r = {'low': T // 5, 'medium': T // 8, 'high': T // 12}.get(complexity, T // 8)
-    r = float(r)
-    pw = math.sqrt(3) * r  # pattern breedte = 1 hex-kolom
-    ph = 3.0 * r           # pattern hoogte = 2 hex-rijen
-    # Hexagoon punten (pointy-top, gecentreerd op cx,cy)
-    def hpoly(cx, cy, kleur, fill_kleur):
-        pts = ["{:.3f},{:.3f}".format(
-            cx + r * math.cos(math.radians(a * 60 + 30)),
-            cy + r * math.sin(math.radians(a * 60 + 30)))
-            for a in range(6)]
-        pts_str = " ".join(pts)
-        return '<polygon points="' + pts_str + '" fill="' + fill_kleur + '" stroke="' + kleur + '" stroke-width="1.5"/>'
-    # 2 hexagonen per pattern-eenheid
-    h1 = hpoly(pw / 2, r, k[0], k[1])         # rij 0, kolom 0.5
-    h2a = hpoly(0, r * 2.5, k[0], k[2])        # rij 1, linkerrand
-    h2b = hpoly(pw, r * 2.5, k[0], k[2])       # rij 1, rechterrand
-    s = []
-    s.append("<defs>")
-    s.append('  <pattern id="hexpat" x="0" y="0" width="' + "{:.4f}".format(pw) + '" height="' + "{:.4f}".format(ph) + '" patternUnits="userSpaceOnUse">')
-    s.append('    <rect width="' + "{:.4f}".format(pw) + '" height="' + "{:.4f}".format(ph) + '" fill="' + k[0] + '"/>')
-    s.append("    " + h1)
-    s.append("    " + h2a)
-    s.append("    " + h2b)
-    s.append("  </pattern>")
-    s.append("</defs>")
-    s.append('<rect width="' + str(T) + '" height="' + str(T) + '" fill="url(#hexpat)"/>')
-    return "\n".join(s)
+    wh = math.sqrt(3) * r; cs = wh; rs = r * 1.5
+    cols = math.ceil(T / cs) + 3; rows = math.ceil(T / rs) + 3
+    s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
+    for row in range(-1, rows):
+        for col in range(-1, cols):
+            cx = col * cs + (wh / 2 if row % 2 else 0) - wh / 2
+            cy = row * rs - r
+            kleur = k[1 + ((col + row) % (len(k) - 1))]
+            stroke = k[2]
+            pts = [f'{cx + r * math.cos(math.radians(a * 60)):.2f},{cy + r * math.sin(math.radians(a * 60)):.2f}' for a in range(6)]
+            pts_str = ' '.join(pts)
+            s.append(f'<polygon points="{pts_str}" fill="{kleur}" stroke="{stroke}" stroke-width="1"/>')
+    return '\n'.join(s)
 
 def generate_ogee_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     n = {'low': 3, 'medium': 5, 'high': 8}.get(complexity, 5)
-    b = T / n; h = b * 0.8
-    rs_raw = h * 0.62
-    n_colors = len(k) - 1
-    n_rows_raw = max(1, round(T / rs_raw))
-    n_rows = round(n_rows_raw / n_colors) * n_colors
-    if n_rows == 0: n_rows = n_colors
-    rs = T / n_rows
-    offset = h * 0.42
+    b = T / n; h = b * 0.8; rs = h * 0.62
+    rows = math.ceil(T / rs) + 4
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
-    for row in range(n_rows + 2, -2, -1):
-        kleur = k[1 + (row % n_colors)]
-        y0 = row * rs - offset
+    for row in range(rows - 1, -2, -1):
+        kleur = k[1 + (row % (len(k) - 1))]
         for col in range(-1, n + 2):
             x = col * b + (b / 2 if row % 2 else 0) - b
+            y = row * rs - h * 0.3
             cx = x + b / 2
-            d = "M {:.1f} {:.1f} Q {:.1f} {:.1f} {:.1f} {:.1f} Q {:.1f} {:.1f} {:.1f} {:.1f} Q {:.1f} {:.1f} {:.1f} {:.1f} Z".format(
-                x, y0+h, cx, y0-h*0.1, x+b, y0+h,
-                x+b+b*0.15, y0+h+rs-h*0.12, cx, y0+h+rs-h*0.15,
-                x-b*0.15, y0+h+rs-h*0.12, x, y0+h)
+            d = f'M {x:.1f} {y+h:.1f} Q {cx:.1f} {y-h*0.1:.1f} {x+b:.1f} {y+h:.1f} Q {x+b+b*0.1:.1f} {y+h*1.8:.1f} {cx:.1f} {y+h*1.75:.1f} Q {x-b*0.1:.1f} {y+h*1.8:.1f} {x:.1f} {y+h:.1f} Z'
             s.append(f'<path d="{d}" fill="{kleur}" stroke="{k[0]}" stroke-width="0.5"/>')
-    return "\n".join(s)
+    return '\n'.join(s)
 
 def generate_diamant_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     nc = {'low': 2, 'medium': 3, 'high': 4}.get(complexity, 3)
     nl = {'low': 5, 'medium': 8, 'high': 12}.get(complexity, 8)
-    # Pas tw aan zodat T exact deelbaar is door tw
-    tw = T / nc
-    # th moet zo zijn dat T exact deelbaar is door th
-    # en dat de offset-rijen (halve stap) ook kloppen
-    # Voor half-drop: th * aantal_rijen = T, en aantal_rijen is even
-    th_raw = tw * 1.3
-    nr = max(2, round(T / th_raw))
-    if nr % 2 != 0: nr += 1  # moet even zijn voor half-drop aansluiting
-    th = T / nr
+    tw = T / nc; th = tw * 1.3
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
     def draw_diamond(cx, cy):
         for i in range(nl, 0, -1):
-            sc = i / nl
-            w2 = (tw / 2 - 2) * sc
-            h2 = (th / 2 - 2) * sc
+            sc = i / nl; w2 = (tw / 2 - 3) * sc; h2 = (th / 2 - 3) * sc
             kleur = k[1 + ((nl - i) % (len(k) - 1))]
             pts = f'{cx:.1f},{cy-h2:.1f} {cx+w2:.1f},{cy:.1f} {cx:.1f},{cy+h2:.1f} {cx-w2:.1f},{cy:.1f}'
             s.append(f'<polygon points="{pts}" fill="none" stroke="{kleur}" stroke-width="1.2"/>')
-    for row in range(-1, nr + 2):
+    for row in range(-1, math.ceil(T / th) + 2):
         for col in range(-1, nc + 2):
             cx = col * tw + (tw / 2 if row % 2 else 0)
             cy = row * th + th / 2
             draw_diamond(cx, cy)
-            # Wrap-around
-            if cx - tw/2 < 0: draw_diamond(cx + T, cy)
-            if cx + tw/2 > T: draw_diamond(cx - T, cy)
-            if cy - th/2 < 0: draw_diamond(cx, cy + T)
-            if cy + th/2 > T: draw_diamond(cx, cy - T)
-    return "\n".join(s)
+            margin = tw / 2
+            if cx - margin < 0: draw_diamond(cx + T, cy)
+            if cx + margin > T: draw_diamond(cx - T, cy)
+            if cy - th / 2 < 0: draw_diamond(cx, cy + T)
+            if cy + th / 2 > T: draw_diamond(cx, cy - T)
+    return '\n'.join(s)
 
 def generate_terrazzo_svg(palette, tile_size, complexity, schaal=100):
     import random as _r
@@ -197,4 +163,81 @@ def generate_vrije_vormen_svg(palette, tile_size, complexity):
                 nx, ny = cx + dx, cy + dy
                 if -r < nx < T + r and -r < ny < T + r:
                     s.append(vorm(nx, ny, r, sides, offsets, kleur))
+    return '\n'.join(s)
+
+def generate_visgraat_svg(palette, tile_size, complexity):
+    T = tile_size; k = _palet(palette)
+    bw = {'low': T // 8, 'medium': T // 12, 'high': T // 18}.get(complexity, T // 12)
+    bh = bw * 2
+    c1 = k[1]; bg = k[0]
+    pw = bw * 2; ph = bw * 3
+    s = ['<rect width="' + str(T) + '" height="' + str(T) + '" fill="' + bg + '"/>']
+    cols = T // pw + 3
+    rows = T // ph + 3
+    for row in range(-1, rows):
+        for col in range(-1, cols):
+            x = col * pw
+            y = row * ph
+            s.append('<rect x="' + f'{x:.1f}' + '" y="' + f'{y:.1f}' + '" width="' + f'{bh:.1f}' + '" height="' + f'{bw:.1f}' + '" fill="' + c1 + '"/>')
+            s.append('<rect x="' + f'{x+bw:.1f}' + '" y="' + f'{y+bw:.1f}' + '" width="' + f'{bw:.1f}' + '" height="' + f'{bh:.1f}' + '" fill="' + c1 + '"/>')
+    return '\n'.join(s)
+
+def generate_visgraat_svg2(palette, tile_size, complexity):
+    T = tile_size; k = _palet(palette)
+    u = {'low': T // 10, 'medium': T // 14, 'high': T // 20}.get(complexity, T // 14)
+    c1 = k[1]; bg = k[0]
+    s = ['<rect width="' + str(T) + '" height="' + str(T) + '" fill="' + bg + '"/>']
+    for row in range(-1, T // u + 4):
+        for col in range(-1, T // u + 4):
+            x = col * u * 2
+            y = row * u * 4
+            if (col % 2 == 0):
+                s.append('<rect x="' + f'{x:.0f}' + '" y="' + f'{y:.0f}' + '" width="' + f'{u*2:.0f}' + '" height="' + f'{u:.0f}' + '" fill="' + c1 + '"/>')
+                s.append('<rect x="' + f'{x+u:.0f}' + '" y="' + f'{y+u:.0f}' + '" width="' + f'{u:.0f}' + '" height="' + f'{u*2:.0f}' + '" fill="' + c1 + '"/>')
+                s.append('<rect x="' + f'{x:.0f}' + '" y="' + f'{y+u*2:.0f}' + '" width="' + f'{u*2:.0f}' + '" height="' + f'{u:.0f}' + '" fill="' + c1 + '"/>')
+                s.append('<rect x="' + f'{x:.0f}' + '" y="' + f'{y+u*3:.0f}' + '" width="' + f'{u:.0f}' + '" height="' + f'{u*2:.0f}' + '" fill="' + c1 + '"/>')
+    return '\n'.join(s)
+
+def generate_visgraat_svg5(palette, tile_size, complexity):
+    import math
+    T = tile_size; k = _palet(palette)
+    res = 200
+    L = T / {'low': 5, 'medium': 8, 'high': 12}.get(complexity, 8)
+    cell = T / res
+    c1 = k[1]; c2 = k[2]
+    s = ['<rect width="' + str(T) + '" height="' + str(T) + '" fill="' + k[0] + '"/>']
+    for row in range(res):
+        for col in range(res):
+            x = col * cell + cell/2
+            y = row * cell + cell/2
+            H = math.floor((x + y) / L)
+            V = math.floor((x - y) / L)
+            kleur = c1 if (H + V) % 2 == 0 else c2
+            s.append('<rect x="' + f'{col*cell:.2f}' + '" y="' + f'{row*cell:.2f}' + '" width="' + f'{cell:.2f}' + '" height="' + f'{cell:.2f}' + '" fill="' + kleur + '"/>')
+    return '\n'.join(s)
+
+def generate_visgraat_svg6(palette, tile_size, complexity):
+    import math
+    T = tile_size; k = _palet(palette)
+    u = {'low': T//8, 'medium': T//12, 'high': T//16}.get(complexity, T//12)
+    c1 = k[1]; c2 = k[0]
+    # Herringbone: 4 parallelogrammen per pattern-eenheid
+    # Eenheid is 2u x 2u, rotatie 45 graden
+    pw = u * 4; ph = u * 4
+    def plank(x1,y1, x2,y2, x3,y3, x4,y4, kleur):
+        return '<polygon points="' + f'{x1},{y1} {x2},{y2} {x3},{y3} {x4},{y4}' + '" fill="' + kleur + '"/>'
+    s = ['<defs>']
+    s.append('  <pattern id="hb" x="0" y="0" width="' + str(pw) + '" height="' + str(ph) + '" patternUnits="userSpaceOnUse">')
+    s.append('    <rect width="' + str(pw) + '" height="' + str(ph) + '" fill="' + c2 + '"/>')
+    # Plank 1: diagonaal linksonder-rechtsboven
+    s.append('    ' + plank(0,u, u,0, u*3,0, u*2,u, c1))
+    # Plank 2: haaks erop
+    s.append('    ' + plank(u*2,u, u*3,0, u*3,u*2, u*2,u*3, c1))
+    # Plank 3: verschoven
+    s.append('    ' + plank(0,u*3, u,u*2, u*3,u*2, u*2,u*3, c1))
+    # Plank 4
+    s.append('    ' + plank(0,u, 0,u*3, u,u*4, u,u*2, c1))
+    s.append('  </pattern>')
+    s.append('</defs>')
+    s.append('<rect width="' + str(T) + '" height="' + str(T) + '" fill="url(#hb)"/>')
     return '\n'.join(s)
