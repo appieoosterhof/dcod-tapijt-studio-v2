@@ -171,82 +171,34 @@ def generate_vrije_vormen_svg(palette, tile_size, complexity):
     return '\n'.join(s)
 
 def generate_visgraat_svg(palette, tile_size, complexity):
+    """Klassiek visgraat/herringbone patroon met afwisselend H en V blokken."""
     T = tile_size; k = _palet(palette)
+    # Blok: breedte bw, hoogte bh = bw*2 (klassieke 1:2 verhouding)
     bw = {'low': T // 8, 'medium': T // 12, 'high': T // 18}.get(complexity, T // 12)
     bh = bw * 2
-    c1 = k[1]; bg = k[0]
-    pw = bw * 2; ph = bw * 3
-    s = ['<rect width="' + str(T) + '" height="' + str(T) + '" fill="' + bg + '"/>']
+    c1 = k[1]
+    c2 = k[0]
+    s = [f'<rect width="{T}" height="{T}" fill="{c2}"/>']
+    # Patroon-eenheid: 2*bw breed, 2*bh hoog
+    # Bevat 4 blokken die het V-motief vormen:
+    # [H][H]   rij 0: twee horizontale blokken naast elkaar
+    # [V][V]   rij 1: twee verticale blokken naast elkaar, verschoven
+    pw = bw * 2
+    ph = bh + bw  # hoogte van de patroon-eenheid
     cols = T // pw + 3
     rows = T // ph + 3
     for row in range(-1, rows):
         for col in range(-1, cols):
-            x = col * pw
-            y = row * ph
-            s.append('<rect x="' + f'{x:.1f}' + '" y="' + f'{y:.1f}' + '" width="' + f'{bh:.1f}' + '" height="' + f'{bw:.1f}' + '" fill="' + c1 + '"/>')
-            s.append('<rect x="' + f'{x+bw:.1f}' + '" y="' + f'{y+bw:.1f}' + '" width="' + f'{bw:.1f}' + '" height="' + f'{bh:.1f}' + '" fill="' + c1 + '"/>')
-    return '\n'.join(s)
-
-def generate_visgraat_svg2(palette, tile_size, complexity):
-    T = tile_size; k = _palet(palette)
-    u = {'low': T // 10, 'medium': T // 14, 'high': T // 20}.get(complexity, T // 14)
-    c1 = k[1]; bg = k[0]
-    s = ['<rect width="' + str(T) + '" height="' + str(T) + '" fill="' + bg + '"/>']
-    for row in range(-1, T // u + 4):
-        for col in range(-1, T // u + 4):
-            x = col * u * 2
-            y = row * u * 4
-            if (col % 2 == 0):
-                s.append('<rect x="' + f'{x:.0f}' + '" y="' + f'{y:.0f}' + '" width="' + f'{u*2:.0f}' + '" height="' + f'{u:.0f}' + '" fill="' + c1 + '"/>')
-                s.append('<rect x="' + f'{x+u:.0f}' + '" y="' + f'{y+u:.0f}' + '" width="' + f'{u:.0f}' + '" height="' + f'{u*2:.0f}' + '" fill="' + c1 + '"/>')
-                s.append('<rect x="' + f'{x:.0f}' + '" y="' + f'{y+u*2:.0f}' + '" width="' + f'{u*2:.0f}' + '" height="' + f'{u:.0f}' + '" fill="' + c1 + '"/>')
-                s.append('<rect x="' + f'{x:.0f}' + '" y="' + f'{y+u*3:.0f}' + '" width="' + f'{u:.0f}' + '" height="' + f'{u*2:.0f}' + '" fill="' + c1 + '"/>')
-    return '\n'.join(s)
-
-def generate_visgraat_svg5(palette, tile_size, complexity):
-    import math
-    T = tile_size; k = _palet(palette)
-    res = 200
-    L = T / {'low': 5, 'medium': 8, 'high': 12}.get(complexity, 8)
-    cell = T / res
-    c1 = k[1]; c2 = k[2]
-    s = ['<rect width="' + str(T) + '" height="' + str(T) + '" fill="' + k[0] + '"/>']
-    for row in range(res):
-        for col in range(res):
-            x = col * cell + cell/2
-            y = row * cell + cell/2
-            H = math.floor((x + y) / L)
-            V = math.floor((x - y) / L)
-            kleur = c1 if (H + V) % 2 == 0 else c2
-            s.append('<rect x="' + f'{col*cell:.2f}' + '" y="' + f'{row*cell:.2f}' + '" width="' + f'{cell:.2f}' + '" height="' + f'{cell:.2f}' + '" fill="' + kleur + '"/>')
-    return '\n'.join(s)
-
-def generate_visgraat_svg6(palette, tile_size, complexity):
-    import math
-    T = tile_size; k = _palet(palette)
-    u = {'low': T//8, 'medium': T//12, 'high': T//16}.get(complexity, T//12)
-    c1 = k[1]; c2 = k[0]
-    # Herringbone: 4 parallelogrammen per pattern-eenheid
-    # Eenheid is 2u x 2u, rotatie 45 graden
-    pw = u * 4; ph = u * 4
-    def plank(x1,y1, x2,y2, x3,y3, x4,y4, kleur):
-        return '<polygon points="' + f'{x1},{y1} {x2},{y2} {x3},{y3} {x4},{y4}' + '" fill="' + kleur + '"/>'
-    s = ['<defs>']
-    s.append('  <pattern id="hb" x="0" y="0" width="' + str(pw) + '" height="' + str(ph) + '" patternUnits="userSpaceOnUse">')
-    s.append('    <rect width="' + str(pw) + '" height="' + str(ph) + '" fill="' + c2 + '"/>')
-    # Plank 1: diagonaal linksonder-rechtsboven
-    s.append('    ' + plank(0,u, u,0, u*3,0, u*2,u, c1))
-    # Plank 2: haaks erop
-    s.append('    ' + plank(u*2,u, u*3,0, u*3,u*2, u*2,u*3, c1))
-    # Plank 3: verschoven
-    s.append('    ' + plank(0,u*3, u,u*2, u*3,u*2, u*2,u*3, c1))
-    # Plank 4
-    s.append('    ' + plank(0,u, 0,u*3, u,u*4, u,u*2, c1))
-    s.append('  </pattern>')
-    s.append('</defs>')
-    s.append('<rect width="' + str(T) + '" height="' + str(T) + '" fill="url(#hb)"/>')
-    return '\n'.join(s)
-
+            x0 = col * pw
+            y0 = row * ph
+            # Bovenste deel: 2 horizontale blokken (bh breed, bw hoog)
+            # Blok 1 links
+            s.append(f'<rect x="{x0:.1f}" y="{y0:.1f}" width="{bh:.1f}" height="{bw:.1f}" fill="{c1}"/>')
+            # Blok 2 rechts (aansluitend)
+            # Onderste deel: 2 verticale blokken (bw breed, bh hoog), verschoven met bw
+            s.append(f'<rect x="{x0+bw:.1f}" y="{y0+bw:.1f}" width="{bw:.1f}" height="{bh:.1f}" fill="{c1}"/>')
+            s.append(f'<rect x="{x0-bw:.1f}" y="{y0+bw:.1f}" width="{bw:.1f}" height="{bh:.1f}" fill="{c1}"/>')
+    return "\n".join(s)
 
 def generate_dots_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
@@ -263,3 +215,39 @@ def generate_dots_svg(palette, tile_size, complexity):
             kleur = k[1 + ((row + col) % (len(k) - 1))]
             s.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" fill="{kleur}"/>')
     return "\n".join(s)
+
+
+def generate_visgraat_lijn_svg(palette, tile_size, complexity):
+    """Naadloos 45-graden parket van dikke plankjes in geweven verband.
+    De diagonale periode deelt de tegel exact op, dus het patroon sluit
+    naadloos aan zonder afgekapte vormen."""
+    T = tile_size
+    k = _palet(palette)
+    niv = {"low": 1, "medium": 2, "high": 3}.get(complexity, 2)
+    u = T / (4.0 * math.sqrt(2) * niv)   # korte zijde van een plankje
+    blk = 2.0 * u                         # blokmaat
+    gap = max(1.0, u * 0.10)              # smalle voeg tussen plankjes
+    c = math.cos(math.pi / 4); s = math.sin(math.pi / 4)
+    def scr(a, b):
+        return (a * c - b * s, a * s + b * c)
+    def plank(a0, b0, la, lb, kleur):
+        a1 = a0 + gap / 2; b1 = b0 + gap / 2
+        a2 = a0 + la - gap / 2; b2 = b0 + lb - gap / 2
+        hoeken = [scr(a1, b1), scr(a2, b1), scr(a2, b2), scr(a1, b2)]
+        ps = " ".join("{:.2f},{:.2f}".format(x, y) for x, y in hoeken)
+        return '<polygon points="{}" fill="{}"/>'.format(ps, kleur)
+    out = ['<rect width="{}" height="{}" fill="{}"/>'.format(T, T, k[0])]
+    amin = -blk * 2; amax = T * 1.5 + blk * 2
+    bmin = -(T * 0.9) - blk * 2; bmax = (T * 0.9) + blk * 2
+    I0 = int(math.floor(amin / blk)); I1 = int(math.ceil(amax / blk))
+    J0 = int(math.floor(bmin / blk)); J1 = int(math.ceil(bmax / blk))
+    for J in range(J0, J1 + 1):
+        for I in range(I0, I1 + 1):
+            a0 = I * blk; b0 = J * blk
+            if (I + J) % 2 == 0:
+                out.append(plank(a0, b0, blk, u, k[1]))
+                out.append(plank(a0, b0 + u, blk, u, k[2]))
+            else:
+                out.append(plank(a0, b0, u, blk, k[1]))
+                out.append(plank(a0 + u, b0, u, blk, k[2]))
+    return "\n".join(out)

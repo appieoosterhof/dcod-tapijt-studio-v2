@@ -18,7 +18,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import anthropic
 from PIL import Image, ImageDraw
-from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_visgraat_svg2, generate_dots_svg
+from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg
 
 app = Flask(__name__)
 CORS(app)
@@ -290,7 +290,6 @@ STYLE_GENERATORS = {
     "floral": generate_floral_svg,
     "botanical": generate_floral_svg,
     "nordic": generate_nordic_svg,
-    "tribal": generate_geometric_svg,
     "persian": generate_medallion_svg,
     "classic": generate_medallion_svg,
     "abstract": generate_abstract_svg,
@@ -301,7 +300,7 @@ STYLE_GENERATORS = {
     "ogee": generate_ogee_svg,
     "diamant": generate_diamant_svg,
     "terrazzo": generate_terrazzo_svg,
-    "visgraat": generate_visgraat_svg2,
+    "visgraat": generate_visgraat_lijn_svg,
     "dots": generate_dots_svg,
     "vrije_vormen": generate_vrije_vormen_svg,
 }
@@ -420,10 +419,7 @@ def build_repeat_svg(tile_svg: str, analysis: dict,
             else:
                 transform = f"translate({x},{y})"
 
-            cid = f"c{clip_id}"
-            clip_id += 1
-            clip_defs.append(f'''<clipPath id="{cid}"><rect x="0" y="0" width="{T}" height="{T}"/></clipPath>''')
-            tiles.append(f'''<g transform="{transform}" clip-path="url(#{cid})">{inner_content}</g>''')
+            tiles.append(f'''<g transform="{transform}">{inner_content}</g>''')
 
     px_w = round(total_w / 400 * (tile_cm / 2.54 * dpi))
     px_h = round(total_h / 400 * (tile_cm / 2.54 * dpi))
