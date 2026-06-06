@@ -396,3 +396,37 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('bestelBreedte')?.addEventListener('input', berekenM2);
   document.getElementById('bestelLengte')?.addEventListener('input', berekenM2);
 });
+
+
+/* ---- Floorvisualizer: Bekijk in ruimte ---- */
+(function(){
+  var SRC = 600;
+  /* vloer-hoekpunten als fractie van de scene (TL,TR,BL,BR) */
+  var FR = [[0.228,0.547],[0.814,0.547],[-0.098,1.0],[1.107,1.0]];
+  function adj(m){return [m[4]*m[8]-m[5]*m[7],m[2]*m[7]-m[1]*m[8],m[1]*m[5]-m[2]*m[4],m[5]*m[6]-m[3]*m[8],m[0]*m[8]-m[2]*m[6],m[2]*m[3]-m[0]*m[5],m[3]*m[7]-m[4]*m[6],m[1]*m[6]-m[0]*m[7],m[0]*m[4]-m[1]*m[3]];}
+  function mmm(a,b){var c=[];for(var i=0;i<3;i++)for(var j=0;j<3;j++){var s=0;for(var k=0;k<3;k++)s+=a[3*i+k]*b[3*k+j];c[3*i+j]=s;}return c;}
+  function mmv(m,v){return [m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]*v[2],m[6]*v[0]+m[7]*v[1]+m[8]*v[2]];}
+  function b2p(x1,y1,x2,y2,x3,y3,x4,y4){var m=[x1,x2,x3,y1,y2,y3,1,1,1];var v=mmv(adj(m),[x4,y4,1]);return mmm(m,[v[0],0,0,0,v[1],0,0,0,v[2]]);}
+  function ruimteLayout(){
+    var scene=document.getElementById('ruimteScene'); if(!scene) return;
+    var W=scene.clientWidth, H=Math.round(W*1024/1536); scene.style.height=H+'px';
+    var d=FR.map(function(p){return {x:p[0]*W,y:p[1]*H};});
+    var s=b2p(0,0,SRC,0,0,SRC,SRC,SRC);
+    var dd=b2p(d[0].x,d[0].y,d[1].x,d[1].y,d[2].x,d[2].y,d[3].x,d[3].y);
+    var t=mmm(dd,adj(s));
+    for(var i=0;i<9;i++) t[i]=t[i]/t[8];
+    var m=[t[0],t[3],0,t[6],t[1],t[4],0,t[7],0,0,1,0,t[2],t[5],0,t[8]];
+    var c=document.getElementById('ruimteCarpet');
+    c.style.transform='matrix3d('+m.join(',')+')'; c.style.transformOrigin='0 0';
+  }
+  function ruimteScale(){var s=+document.getElementById('ruimteScale').value;document.getElementById('ruimteCarpet').style.backgroundSize=s+'px '+s+'px';}
+  window.openVisualizer=function(){
+    if(typeof currentTileSvg==='undefined' || !currentTileSvg){ alert('Genereer eerst een dessin.'); return; }
+    document.getElementById('ruimteCarpet').style.backgroundImage="url('data:image/svg+xml;base64,"+currentTileSvg+"')";
+    ruimteScale();
+    document.getElementById('ruimteModal').style.display='flex';
+    setTimeout(ruimteLayout,40);
+  };
+  document.addEventListener('input',function(e){ if(e.target && e.target.id==='ruimteScale') ruimteScale(); });
+  window.addEventListener('resize',function(){ var md=document.getElementById('ruimteModal'); if(md && md.style.display==='flex') ruimteLayout(); });
+})();
