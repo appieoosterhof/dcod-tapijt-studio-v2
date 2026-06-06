@@ -237,22 +237,24 @@ def generate_nordic_svg(palette: dict, tile_size: int, complexity: str) -> str:
     c2 = palette["secondary"]
     c3 = palette["accent1"]
     shapes = []
-    step = T // 6 if complexity == "high" else T // 5 if complexity == "medium" else T // 4
+    # EVEN aantal cellen dat de tegel exact opdeelt -> naadloze wrap
+    cells = {"low": 4, "medium": 6, "high": 8}.get(complexity, 6)
+    step = T / cells
     arm = step * 0.38
     w = step * 0.13
-    # Achtergrondvlakken afwisselend
-    for row in range(-1, T // step + 2):
-        for col in range(-1, T // step + 2):
+    # Achtergrond-schaakbord (even cellen -> kleur sluit op rand aan)
+    for row in range(0, cells):
+        for col in range(0, cells):
             x = col * step
             y = row * step
             fill = c1 if (row + col) % 2 == 0 else c2
-            shapes.append(f'<rect x="{x}" y="{y}" width="{step}" height="{step}" fill="{fill}"/>')
-    # Nordic kruis op elk rasterpunt
-    for row in range(0, T + step, step):
-        for col in range(0, T + step, step):
-            cx = col
-            cy = row
-            bg_kleur = c2 if ((row // step) + (col // step)) % 2 == 0 else c1
+            shapes.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{step:.1f}" height="{step:.1f}" fill="{fill}"/>')
+    # Nordic kruis op elk rasterpunt incl. randen (col/row 0..cells, met wrap)
+    for row in range(0, cells + 1):
+        for col in range(0, cells + 1):
+            cx = col * step
+            cy = row * step
+            bg_kleur = c2 if ((row % cells) + (col % cells)) % 2 == 0 else c1
             # Verticale arm van het kruis
             shapes.append(f'<rect x="{cx-w:.1f}" y="{cy-arm:.1f}" width="{w*2:.1f}" height="{arm*2:.1f}" fill="{bg_kleur}"/>')
             # Horizontale arm
@@ -322,8 +324,6 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "ogee"
     elif any(w in p for w in ["nordic", "scandinavisch", "noors", "kruis", "sneeuwvlok"]):
         style = "nordic"
-    elif any(w in p for w in ["diamant", "concentrisch"]):
-        style = "diamant"
     elif any(w in p for w in ["terrazzo", "steensnipp"]):
         style = "terrazzo"
     elif any(w in p for w in ["vrije vorm", "organisch", "vloeiend"]):
@@ -343,8 +343,6 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "ogee"
     elif any(w in prompt_lower for w in ["nordic", "scandinavisch", "noors", "kruis", "ruitpatroon"]):
         style = "nordic"
-    elif any(w in prompt_lower for w in ["diamant", "concentrisch"]):
-        style = "diamant"
     elif any(w in prompt_lower for w in ["terrazzo", "steensnipp"]):
         style = "terrazzo"
     elif any(w in prompt_lower for w in ["vrije vorm", "organisch", "vloeiend"]):
@@ -355,30 +353,44 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     })
     complexity = analysis.get("complexity", "medium")
     shape_list = analysis.get("shapes", [])
-    # Schaal aanpassen: kleiner tile = fijner patroon
-    tile_size = max(50, int(tile_size * (100 / max(motief_schaal, 10))))
-    # Als gebruiker specifieke vormen vraagt, altijd geometric generator gebruiken
+    # --- Motief-schaal via naadloze tegeling (tegel blijft ALTIJD 400) ---
+    # Kleiner % = fijner = motief vaker herhaald binnen de 400-tegel.
+    # n is een deler van 400, dus het patroon sluit exact aan (naadloos).
+    TEGEL = 400
+    delers = [1, 2, 4, 5, 8, 10]
+    ratio = 100.0 / max(int(motief_schaal), 10)
+    n = min(delers, key=lambda d: abs(d - ratio))
+    if n < 1:
+        n = 1
+    g = TEGEL // n  # interne grootte waarop de generator tekent
     extra_styles = ["strepen","mozaiek","chevron","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
     if style in extra_styles:
-        generator = STYLE_GENERATORS.get(style)
+        generator = STYLE_GENERATORS.get(style, generate_geometric_svg)
         try:
-            inner = generator(palette, tile_size, complexity, motief_schaal)
+            inner = generator(palette, g, complexity)
         except TypeError:
-            inner = generator(palette, tile_size, complexity)
+            inner = generator(palette, g, complexity, None)
     elif user_specified or shape_list == ["circle"] or shape_list == ["square"] or shape_list == ["triangle"]:
-        inner = generate_geometric_svg(palette, tile_size, complexity, shape_list)
+        inner = generate_geometric_svg(palette, g, complexity, shape_list)
     else:
         generator = STYLE_GENERATORS.get(style, generate_geometric_svg)
         if generator == generate_geometric_svg:
-            inner = generator(palette, tile_size, complexity, shape_list or ["octagon"])
+            inner = generator(palette, g, complexity, shape_list or ["octagon"])
         else:
-            inner = generator(palette, tile_size, complexity)
+            inner = generator(palette, g, complexity)
+    # Tegel het motief n x n binnen de 400-tegel (naadloos want 400 = n * g)
+    if n > 1:
+        kopieen = []
+        for iy in range(n):
+            for ix in range(n):
+                kopieen.append(f'<g transform="translate({ix * g},{iy * g})">{inner}</g>')
+        inner = "".join(kopieen)
     svg = f"""<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {tile_size} {tile_size}"
-     width="{tile_size}" height="{tile_size}">
-  <rect width="{tile_size}" height="{tile_size}" fill="{palette['background']}"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {TEGEL} {TEGEL}"
+     width="{TEGEL}" height="{TEGEL}">
+  <rect width="{TEGEL}" height="{TEGEL}" fill="{palette['background']}"/>
   {inner}
 </svg>"""
     return svg
@@ -506,8 +518,6 @@ def api_generate():
             analysis['style'] = 'ogee'
         elif any(w in p for w in ['nordic', 'scandinavisch', 'noors', 'kruis', 'sneeuwvlok']):
             analysis['style'] = 'nordic'
-        elif any(w in p for w in ['diamant', 'concentrisch']):
-            analysis['style'] = 'diamant'
         elif any(w in p for w in ['batik', 'mirror', 'spiegel', 'tie-dye', 'ikat']):
             analysis['style'] = 'batik'
         elif any(w in p for w in ['vlechtwerk', 'vlecht', 'gevlochten', 'basketweave']):

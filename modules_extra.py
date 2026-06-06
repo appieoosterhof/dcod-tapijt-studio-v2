@@ -98,16 +98,29 @@ def generate_ogee_svg(palette, tile_size, complexity):
 def generate_diamant_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     nc = {'low': 2, 'medium': 3, 'high': 4}.get(complexity, 3)
-    nl = {'low': 5, 'medium': 8, 'high': 12}.get(complexity, 8)
-    tw = T / nc; th = tw * 1.3
+    # nl = aantal geneste ringen per diamant (fijn, strak concentrisch)
+    nl = {'low': 9, 'medium': 13, 'high': 18}.get(complexity, 13)
+    tw = T / nc
+    # EVEN aantal rijen dat T exact opdeelt -> verticaal naadloos (half-drop wrapt)
+    rows = max(2, round(nc / 1.3))
+    if rows % 2 == 1:
+        rows += 1
+    th = T / rows
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
     def draw_diamond(cx, cy):
+        # van buiten naar binnen: gelijkmatig geneste ringen, strak gecentreerd
         for i in range(nl, 0, -1):
-            sc = i / nl; w2 = (tw / 2 - 3) * sc; h2 = (th / 2 - 3) * sc
+            sc = i / nl
+            w2 = (tw / 2 - 2) * sc
+            h2 = (th / 2 - 2) * sc
             kleur = k[1 + ((nl - i) % (len(k) - 1))]
             pts = f'{cx:.1f},{cy-h2:.1f} {cx+w2:.1f},{cy:.1f} {cx:.1f},{cy+h2:.1f} {cx-w2:.1f},{cy:.1f}'
-            s.append(f'<polygon points="{pts}" fill="none" stroke="{kleur}" stroke-width="1.2"/>')
-    for row in range(-1, math.ceil(T / th) + 2):
+            s.append(f'<polygon points="{pts}" fill="none" stroke="{kleur}" stroke-width="1.4"/>')
+        # klein gevuld hart in het midden voor strakke focus
+        cw = (tw / 2 - 2) / nl; ch = (th / 2 - 2) / nl
+        hart = f'{cx:.1f},{cy-ch:.1f} {cx+cw:.1f},{cy:.1f} {cx:.1f},{cy+ch:.1f} {cx-cw:.1f},{cy:.1f}'
+        s.append(f'<polygon points="{hart}" fill="{k[1]}"/>')
+    for row in range(-1, rows + 2):
         for col in range(-1, nc + 2):
             cx = col * tw + (tw / 2 if row % 2 else 0)
             cy = row * th + th / 2
