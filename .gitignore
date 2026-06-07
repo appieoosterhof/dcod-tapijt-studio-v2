@@ -1,4 +1,8 @@
-fix_*.py
-patch_html.py
-*.backup
 __pycache__/
+*.pyc
+*.bak_*
+*.backup_*
+*.backup
+*.backup2
+modules_extra_backup.py
+exports/

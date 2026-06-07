@@ -18,14 +18,14 @@ def _palet(palette):
     return [palette.get('background','#F5F5F5'),palette.get('primary','#C4753A'),palette.get('secondary','#8B4513'),palette.get('accent1','#D4A055'),palette.get('accent2','#F0C080')]
 
 def generate_strepen_svg(palette,tile_size,complexity):
-    T=tile_size; k=_palet(palette); n={'low':4,'medium':6,'high':10}.get(complexity,6); b=T/n
+    T=tile_size; k=_palet(palette); n={'low':3,'medium':4,'high':6}.get(complexity,4); b=T/n
     s=[]
     for i in range(n+1): s.append(f'<rect x="{i*b:.1f}" y="0" width="{b:.1f}" height="{T}" fill="{k[i%len(k)]}"/>')
     return '\n'.join(s)
 
 def generate_mozaiek_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
-    n = {'low': 8, 'medium': 14, 'high': 22}.get(complexity, 14)
+    n = {'low': 4, 'medium': 7, 'high': 11}.get(complexity, 7)
     b = T / n
     gap = max(1, int(b * 0.06))
     rng = random.Random(42)
@@ -39,7 +39,7 @@ def generate_mozaiek_svg(palette, tile_size, complexity):
     return chr(10).join(s)
 def generate_chevron_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
-    n = {'low': 5, 'medium': 8, 'high': 14}.get(complexity, 8)
+    n = {'low': 3, 'medium': 5, 'high': 8}.get(complexity, 5)
     h = T / n
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
     for row in range(-1, n + 2):
@@ -75,26 +75,34 @@ def generate_hexagoon_svg(palette, tile_size, complexity):
     return '\n'.join(s)
 
 def generate_ogee_svg(palette, tile_size, complexity):
-    T = tile_size; k = _palet(palette)
-    n = {'low': 3, 'medium': 5, 'high': 8}.get(complexity, 5)
-    b = T / n; h = b * 0.8
-    rs_raw = h * 0.62
-    n_colors = len(k) - 1
-    n_rows_raw = max(1, round(T / rs_raw))
-    n_rows = round(n_rows_raw / n_colors) * n_colors
-    if n_rows == 0: n_rows = n_colors
-    rs = T / n_rows
-    offset = h * 0.42
-    s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
-    for row in range(n_rows + 2, -2, -1):
+    """Naadloos schubben/scallop patroon. De ronde schubben worden van boven
+    naar onder getekend (lagere rij steeds bovenop), zodat de overlap-richting
+    overeenkomt met de tegel-stapeling en er geen verspringing op de naad
+    ontstaat. Horizontaal naadloos omdat de schubbreedte de tegel exact deelt;
+    verticaal naadloos omdat het aantal rijen een even veelvoud van het aantal
+    kleuren is."""
+    T = tile_size
+    k = _palet(palette)
+    cols = {'low': 4, 'medium': 6, 'high': 9}.get(complexity, 6)
+    sw = T / cols
+    r = sw * 0.62
+    n_colors = max(1, len(k) - 1)
+    rows_raw = max(n_colors, round(T / (sw * 0.55)))
+    rows = round(rows_raw / n_colors) * n_colors
+    if rows <= 0:
+        rows = n_colors
+    if rows % 2 == 1:
+        rows += n_colors
+    rh = T / rows
+    s = ['<rect width="{:.1f}" height="{:.1f}" fill="{}"/>'.format(T, T, k[0])]
+    for row in range(-2, rows + 3):
         kleur = k[1 + (row % n_colors)]
-        y0 = row * rs - offset
-        for col in range(-1, n + 2):
-            x = col * b + (b / 2 if row % 2 else 0) - b
-            cx = x + b / 2
-            d = 'M %.1f %.1f Q %.1f %.1f %.1f %.1f Q %.1f %.1f %.1f %.1f Q %.1f %.1f %.1f %.1f Z' % (x, y0+h, cx, y0-h*0.1, x+b, y0+h, x+b+b*0.1, y0+h+rs-h*0.12, cx, y0+h+rs-h*0.15, x-b*0.1, y0+h+rs-h*0.12, x, y0+h)
-            s.append(f'<path d="{d}" fill="{kleur}" stroke="{k[0]}" stroke-width="0.5"/>')
+        cy = row * rh
+        for col in range(-1, cols + 2):
+            cx = col * sw + (sw / 2.0 if row % 2 else 0.0)
+            s.append('<circle cx="{:.2f}" cy="{:.2f}" r="{:.2f}" fill="{}"/>'.format(cx, cy, r, kleur))
     return chr(10).join(s)
+
 def generate_diamant_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     nc = {'low': 2, 'medium': 3, 'high': 4}.get(complexity, 3)
@@ -155,7 +163,7 @@ def generate_vrije_vormen_svg(palette, tile_size, complexity):
     import random as _r
     T = tile_size; k = _palet(palette); rng = _r.Random(99)
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
-    n = {'low': 8, 'medium': 14, 'high': 22}.get(complexity, 14)
+    n = {'low': 4, 'medium': 7, 'high': 11}.get(complexity, 7)
     def vorm(cx, cy, r, sides, offsets, kleur):
         pts = []
         for j, off in enumerate(offsets):
@@ -215,7 +223,7 @@ def generate_visgraat_svg(palette, tile_size, complexity):
 
 def generate_dots_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
-    n = {'low': 4, 'medium': 6, 'high': 9}.get(complexity, 6)
+    n = {'low': 3, 'medium': 4, 'high': 6}.get(complexity, 4)
     step = T / n
     r = step * 0.35
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
@@ -264,3 +272,135 @@ def generate_visgraat_lijn_svg(palette, tile_size, complexity):
                 out.append(plank(a0, b0, u, blk, k[1]))
                 out.append(plank(a0 + u, b0, u, blk, k[2]))
     return "\n".join(out)
+
+
+def generate_bamboe_svg(palette, tile_size, complexity):
+    """Verticale bamboestokken, naadloos in beide richtingen.
+    De stok-afstand deelt de tegel exact (horizontaal naadloos) en de
+    knopen worden met wrap-kopieen getekend (verticaal naadloos),
+    om-en-om verspringend voor een natuurlijke look. De kleuren volgen
+    het gekozen palet: elke stok krijgt donkere randen en een lichte
+    highlight, afgeleid van de primaire kleur, voor een ronde buisvorm."""
+    T = float(tile_size)
+    k = _palet(palette)
+    bg = k[0]
+    basis = k[1]
+    licht = _lerp(basis, '#ffffff', 0.42)
+    donker = _lerp(basis, '#000000', 0.38)
+    knoop_kleur = _lerp(basis, '#000000', 0.52)
+    knoop_licht = _lerp(basis, '#ffffff', 0.20)
+    aantal = {'low': 3, 'medium': 4, 'high': 6}.get(complexity, 4)
+    n_knopen = {'low': 3, 'medium': 4, 'high': 5}.get(complexity, 4)
+    pitch = T / aantal
+    stok_b = pitch * 0.60
+    strips = 11
+    sw = stok_b / strips
+    sp = T / n_knopen
+    knoop_h = max(4.0, T * 0.022)
+    nh = knoop_h / 2.0
+    out = ['<rect width="{:.1f}" height="{:.1f}" fill="{}"/>'.format(T, T, bg)]
+    def teken_knoop(cx, cy):
+        x = cx - stok_b / 2.0 - stok_b * 0.06
+        w = stok_b + stok_b * 0.12
+        out.append('<rect x="{:.2f}" y="{:.2f}" width="{:.2f}" height="{:.2f}" fill="{}"/>'.format(x, cy - nh, w, knoop_h, knoop_kleur))
+        out.append('<rect x="{:.2f}" y="{:.2f}" width="{:.2f}" height="{:.2f}" fill="{}"/>'.format(x, cy - nh - knoop_h * 0.22, w, knoop_h * 0.22, knoop_licht))
+    for i in range(aantal):
+        cx = i * pitch + pitch / 2.0
+        for s_i in range(strips):
+            t = (s_i + 0.5) / strips
+            schaduw = min(abs(t - 0.40) / 0.60, 1.0)
+            kleur = _lerp(licht, donker, schaduw)
+            x = cx - stok_b / 2.0 + s_i * sw
+            out.append('<rect x="{:.2f}" y="-1.0" width="{:.2f}" height="{:.1f}" fill="{}"/>'.format(x, sw + 0.6, T + 2.0, kleur))
+        offset = sp * 0.25 + (sp * 0.5 if i % 2 else 0.0)
+        for j in range(n_knopen):
+            cy = offset + j * sp
+            for dy in (0.0, T, -T):
+                y = cy + dy
+                if -nh - knoop_h < y < T + nh + knoop_h:
+                    teken_knoop(cx, y)
+    return "\n".join(out)
+
+
+def generate_artdeco_svg(palette, tile_size, complexity):
+    """Art Deco zonnestraal-rozetten in een raster met dubbele-lijn trellis en
+    kleine stralenbursts op de kruispunten. Naadloos: alles is periodiek met de
+    celmaat en de rozetten blijven binnen hun cel. Kleuren volgen het palet
+    (primair = stralen, accent = afwisseling, secundair = trellis-lijnen)."""
+    T = float(tile_size)
+    k = _palet(palette)
+    bg = k[0]
+    goud = k[1]
+    goud2 = k[3] if len(k) > 3 else k[1]
+    lijn = k[2] if len(k) > 2 else k[1]
+    cols = {'low': 2, 'medium': 3, 'high': 4}.get(complexity, 3)
+    cell = T / cols
+    mid = cell / 2.0
+    ro = cell * 0.40
+    ri = cell * 0.085
+    N = {'low': 20, 'medium': 24, 'high': 28}.get(complexity, 24)
+    s = ['<rect width="{:.1f}" height="{:.1f}" fill="{}"/>'.format(T, T, bg)]
+
+    def rozet(cx, cy, ro, ri, N, c1, c2, centrum):
+        ho = (math.pi / N) * 0.78
+        hi = ho * 0.22
+        for j in range(N):
+            a = j * 2.0 * math.pi / N
+            x1 = cx + ri * math.cos(a - hi); y1 = cy + ri * math.sin(a - hi)
+            x2 = cx + ro * math.cos(a - ho); y2 = cy + ro * math.sin(a - ho)
+            x3 = cx + ro * math.cos(a + ho); y3 = cy + ro * math.sin(a + ho)
+            x4 = cx + ri * math.cos(a + hi); y4 = cy + ri * math.sin(a + hi)
+            kleur = c1 if j % 2 == 0 else c2
+            pts = '{:.1f},{:.1f} {:.1f},{:.1f} {:.1f},{:.1f} {:.1f},{:.1f}'.format(x1, y1, x2, y2, x3, y3, x4, y4)
+            s.append('<polygon points="{}" fill="{}"/>'.format(pts, kleur))
+        if centrum:
+            s.append('<circle cx="{:.1f}" cy="{:.1f}" r="{:.1f}" fill="{}"/>'.format(cx, cy, ri * 1.15, bg))
+            s.append('<circle cx="{:.1f}" cy="{:.1f}" r="{:.1f}" fill="{}"/>'.format(cx, cy, ri * 0.5, c1))
+
+    lw = max(1.2, cell * 0.016)
+    gap = cell * 0.045
+    for c in range(0, cols + 1):
+        xx = c * cell
+        s.append('<rect x="{:.2f}" y="0" width="{:.2f}" height="{:.1f}" fill="{}"/>'.format(xx - gap - lw, lw, T, lijn))
+        s.append('<rect x="{:.2f}" y="0" width="{:.2f}" height="{:.1f}" fill="{}"/>'.format(xx + gap, lw, T, lijn))
+        yy = c * cell
+        s.append('<rect x="0" y="{:.2f}" width="{:.1f}" height="{:.2f}" fill="{}"/>'.format(yy - gap - lw, T, lw, lijn))
+        s.append('<rect x="0" y="{:.2f}" width="{:.1f}" height="{:.2f}" fill="{}"/>'.format(yy + gap, T, lw, lijn))
+    for rr in range(cols):
+        for cc in range(cols):
+            rozet(cc * cell + mid, rr * cell + mid, ro, ri, N, goud, goud2, True)
+    for rr in range(0, cols + 1):
+        for cc in range(0, cols + 1):
+            rozet(cc * cell, rr * cell, cell * 0.13, cell * 0.028, 12, goud, goud2, False)
+    return chr(10).join(s)
+
+
+def generate_artdeco_hex_svg(palette, tile_size, complexity):
+    """Art Deco honingraat: concentrische zeshoeken (rand-ring plus gevulde kern)
+    in een verspringend raster. Naadloos: elke zeshoek blijft binnen zijn cel en
+    de randmotieven worden met wrap-kopieen herhaald. Kleuren volgen het palet."""
+    T = float(tile_size)
+    k = _palet(palette)
+    bg = k[0]
+    c_rand = k[1]
+    c_kern = k[1]
+    cols = {'low': 2, 'medium': 4, 'high': 6}.get(complexity, 4)
+    cs = T / cols
+    R = cs * 0.49
+    s = ['<rect width="{:.1f}" height="{:.1f}" fill="{}"/>'.format(T, T, bg)]
+    def hexpts(cx, cy, rad):
+        p = []
+        for a in range(6):
+            ang = math.radians(60 * a - 90)
+            p.append('{:.2f},{:.2f}'.format(cx + rad * math.cos(ang), cy + rad * math.sin(ang)))
+        return ' '.join(p)
+    def motief(cx, cy):
+        s.append('<polygon points="{}" fill="{}"/>'.format(hexpts(cx, cy, R), c_rand))
+        s.append('<polygon points="{}" fill="{}"/>'.format(hexpts(cx, cy, R * 0.74), bg))
+        s.append('<polygon points="{}" fill="{}"/>'.format(hexpts(cx, cy, R * 0.46), c_kern))
+    for row in range(-1, cols + 2):
+        for col in range(-1, cols + 2):
+            cx = col * cs + (cs / 2.0 if row % 2 else 0.0)
+            cy = row * cs
+            motief(cx, cy)
+    return chr(10).join(s)

@@ -18,7 +18,8 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import anthropic
 from PIL import Image, ImageDraw
-from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg
+from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg, generate_bamboe_svg, generate_artdeco_svg
+from modules_extra import generate_artdeco_svg, generate_artdeco_hex_svg
 
 app = Flask(__name__)
 CORS(app)
@@ -89,7 +90,7 @@ def generate_geometric_svg(palette: dict, tile_size: int, complexity: str, shape
     c2 = palette["secondary"]
     c3 = palette["accent1"]
     c4 = palette["accent2"]
-    step = T // 4 if complexity == "high" else T // 3 if complexity == "medium" else T // 2
+    step = T // 3 if complexity == "high" else T // 2 if complexity == "medium" else T // 2
     if not shape_list:
         shape_list = ["octagon"]
     svgs = []
@@ -154,43 +155,77 @@ def generate_geometric_svg(palette: dict, tile_size: int, complexity: str, shape
 
 
 def generate_floral_svg(palette: dict, tile_size: int, complexity: str) -> str:
+    """Rijk botanisch bloemmotief: gelaagde bloemblaadjes, blaadjes rondom,
+    een gedetailleerd hart en kleine knopjes als opvulling. Naadloos: de
+    hoofdbloemen staan binnen hun cel en de knopjes op de gedeelde celhoeken
+    (incl. randen), zodat het patroon rondom aansluit."""
     T = tile_size
     bg = palette["background"]
     c1 = palette["primary"]
     c2 = palette["secondary"]
     c3 = palette["accent1"]
     c4 = palette["accent2"]
-    cols = 3 if complexity == "high" else 2
-    step = T // cols
+    cols = {"low": 2, "medium": 3, "high": 3}.get(complexity, 3)
+    step = T / cols
     shapes = []
-    def flower(cx, cy, r, fill, center):
-        petals = 8
-        for k in range(petals):
-            angle = math.radians(k * (360 / petals))
-            px = cx + r * 0.55 * math.cos(angle)
-            py = cy + r * 0.55 * math.sin(angle)
-            shapes.append(f'<ellipse cx="{px:.1f}" cy="{py:.1f}" rx="{r*0.28:.1f}" ry="{r*0.42:.1f}" '
-                          f'fill="{fill}" opacity="0.85" transform="rotate({math.degrees(angle):.1f} {px:.1f} {py:.1f})"/>')
-        shapes.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r*0.22:.1f}" fill="{center}"/>')
-        shapes.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r*0.10:.1f}" fill="{c2}" opacity="0.6"/>')
+
+    def blad(cx, cy, lengte, ang, kleur):
+        dx = lengte * math.cos(math.radians(ang))
+        dy = lengte * math.sin(math.radians(ang))
+        ex = cx + dx
+        ey = cy + dy
+        px = -dy * 0.5
+        py = dx * 0.5
+        d = "M %.1f %.1f Q %.1f %.1f %.1f %.1f Q %.1f %.1f %.1f %.1f Z" % (
+            cx, cy, cx + dx * 0.5 + px, cy + dy * 0.5 + py, ex, ey,
+            cx + dx * 0.5 - px, cy + dy * 0.5 - py, cx, cy)
+        shapes.append('<path d="%s" fill="%s" opacity="0.9"/>' % (d, kleur))
+        shapes.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="0.8" opacity="0.5"/>' % (cx, cy, ex, ey, c2))
+
+    def bloem(cx, cy, r, buiten, binnen):
+        for a in (45, 135, 225, 315):
+            blad(cx, cy, r * 1.2, a, c2)
+        for kk in range(8):
+            a = math.radians(kk * 45)
+            px = cx + r * 0.55 * math.cos(a)
+            py = cy + r * 0.55 * math.sin(a)
+            shapes.append('<ellipse cx="%.1f" cy="%.1f" rx="%.1f" ry="%.1f" fill="%s" opacity="0.92" transform="rotate(%.1f %.1f %.1f)"/>' % (
+                px, py, r * 0.30, r * 0.46, buiten, math.degrees(a), px, py))
+        for kk in range(8):
+            a = math.radians(kk * 45 + 22.5)
+            px = cx + r * 0.34 * math.cos(a)
+            py = cy + r * 0.34 * math.sin(a)
+            shapes.append('<ellipse cx="%.1f" cy="%.1f" rx="%.1f" ry="%.1f" fill="%s" opacity="0.95" transform="rotate(%.1f %.1f %.1f)"/>' % (
+                px, py, r * 0.18, r * 0.30, binnen, math.degrees(a) + 22.5, px, py))
+        shapes.append('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="%s"/>' % (cx, cy, r * 0.22, c4))
+        for kk in range(6):
+            a = math.radians(kk * 60)
+            shapes.append('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="%s"/>' % (
+                cx + r * 0.12 * math.cos(a), cy + r * 0.12 * math.sin(a), r * 0.04, c2))
+        shapes.append('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="%s"/>' % (cx, cy, r * 0.07, c2))
+
+    def knop(cx, cy, r, kleur):
+        for kk in range(5):
+            a = math.radians(kk * 72 - 90)
+            px = cx + r * 0.5 * math.cos(a)
+            py = cy + r * 0.5 * math.sin(a)
+            shapes.append('<ellipse cx="%.1f" cy="%.1f" rx="%.1f" ry="%.1f" fill="%s" opacity="0.9" transform="rotate(%.1f %.1f %.1f)"/>' % (
+                px, py, r * 0.30, r * 0.44, kleur, math.degrees(a) + 90, px, py))
+        shapes.append('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="%s"/>' % (cx, cy, r * 0.24, c4))
+
     for row in range(cols):
         for col in range(cols):
-            cx = col * step + step // 2
-            cy = row * step + step // 2
-            r = step * 0.44
-            flower(cx, cy, r, c1, c3)
-    # Half-staggered tussenin
+            cx = col * step + step / 2
+            cy = row * step + step / 2
+            r = step * 0.40
+            if (row + col) % 2 == 0:
+                bloem(cx, cy, r, c1, c3)
+            else:
+                bloem(cx, cy, r, c3, c1)
     for row in range(cols + 1):
         for col in range(cols + 1):
-            cx = col * step
-            cy = row * step
-            if cx <= T and cy <= T:
-                flower(cx, cy, step * 0.22, c3, c4)
-    # Sierlijke stengels
-    shapes.append(f'<line x1="0" y1="{T//2}" x2="{T}" y2="{T//2}" stroke="{c2}" stroke-width="1.2" opacity="0.3"/>')
-    shapes.append(f'<line x1="{T//2}" y1="0" x2="{T//2}" y2="{T}" stroke="{c2}" stroke-width="1.2" opacity="0.3"/>')
+            knop(col * step, row * step, step * 0.17, c4)
     return "\n".join(shapes)
-
 
 def generate_medallion_svg(palette: dict, tile_size: int, complexity: str) -> str:
     T = tile_size
@@ -305,6 +340,9 @@ STYLE_GENERATORS = {
     "visgraat": generate_visgraat_lijn_svg,
     "dots": generate_dots_svg,
     "vrije_vormen": generate_vrije_vormen_svg,
+    "bamboe": generate_bamboe_svg,
+    "art_deco_hex": generate_artdeco_hex_svg,
+    "art_deco": generate_artdeco_svg,
 }
 
 
@@ -347,6 +385,17 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "terrazzo"
     elif any(w in prompt_lower for w in ["vrije vorm", "organisch", "vloeiend"]):
         style = "vrije_vormen"
+    if "bamboe" in p or "bamboo" in p:
+        style = "bamboe"
+    if "art deco" in p or "jaren 20" in p or "jaren twintig" in p:
+        if any(w in p for w in ["hexagon", "zeshoek", "honingraat"]):
+            style = "art_deco_hex"
+        else:
+            style = "art_deco"
+    if any(w in p for w in ["botanisch", "bloem", "blad", "botanical", "plant", "flora"]):
+        style = "botanical"
+    if "medaillon" in p or "medallion" in p:
+        style = "medallion"
     palette = analysis.get("palette", {
         "background": "#F5E6D3", "primary": "#C4753A",
         "secondary": "#8B4513", "accent1": "#D4A055", "accent2": "#F0C080"
@@ -363,7 +412,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     if n < 1:
         n = 1
     g = TEGEL // n  # interne grootte waarop de generator tekent
-    extra_styles = ["strepen","mozaiek","chevron","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract"]
+    extra_styles = ["strepen","mozaiek","chevron","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
     if style in extra_styles:
@@ -500,7 +549,9 @@ def api_generate():
     try:
         # Stap 2: Genereer basistegel SVG
         p = prompt.lower()
-        if any(w in p for w in ['botanisch', 'bloem', 'blad', 'botanical', 'plant', 'flora']):
+        if 'bamboe' in p or 'bamboo' in p:
+            analysis['style'] = 'bamboe'
+        elif any(w in p for w in ['botanisch', 'bloem', 'blad', 'botanical', 'plant', 'flora']):
             analysis['style'] = 'botanical'
         elif any(w in p for w in ['vlechtwerk', 'vlecht', 'gevlochten', 'basketweave']):
             analysis['style'] = 'vlechtwerk'
@@ -542,13 +593,42 @@ def api_generate():
         # Stap 5: Bereken resolutie-informatie
         px_per_tile = round(tile_cm / 2.54 * dpi)
 
+        # Vriendelijk stijl-label (alleen weergave; verandert de tekening niet)
+        p_low = prompt.lower()
+        label_map = [
+            (['bamboe', 'bamboo'], 'bamboe'),
+            (['art deco', 'jaren 20', 'jaren twintig'], 'art deco'),
+            (['schub', 'dakpan', 'ogee'], 'schubben'),
+            (['sterren'], 'sterren'),
+            (['cirkel'], 'cirkels'),
+            (['ruiten', 'diamant'], 'ruiten'),
+            (['terrazzo'], 'terrazzo'),
+            (['mozaiek'], 'mozaiek'),
+            (['visgraat', 'herringbone'], 'visgraat'),
+            (['strepen', 'streep', 'stripe'], 'strepen'),
+            (['dots', 'stippen', 'polka'], 'dots'),
+            (['chevron', 'zigzag'], 'chevron'),
+            (['hexagon', 'honingraat', 'zeshoek'], 'hexagon'),
+            (['nordic', 'scandinavisch', 'noors'], 'nordic'),
+            (['vrije vorm', 'organisch', 'vloeiend'], 'vrije vormen'),
+            (['medaillon', 'medallion'], 'medaillon'),
+            (['perzisch', 'persian'], 'perzisch'),
+            (['botanisch', 'bloem', 'botanical'], 'botanisch'),
+            (['abstract'], 'abstract'),
+        ]
+        weergave_stijl = analysis.get('style', '')
+        for _sleutels, _naam in label_map:
+            if any(_s in p_low for _s in _sleutels):
+                weergave_stijl = _naam
+                break
+
         return jsonify({
             "success": True,
             "analysis": analysis,
             "tile_svg_b64": tile_b64,
             "repeat_svg_b64": repeat_b64,
             "info": {
-                "style": analysis.get("style", ""),
+                "style": weergave_stijl,
                 "description": analysis.get("description_nl", ""),
                 "complexity": analysis.get("complexity", ""),
                 "dpi": dpi,
