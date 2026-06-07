@@ -478,7 +478,9 @@ def build_repeat_svg(tile_svg: str, analysis: dict,
                 ty = y + (T if sy == -1 else 0)
                 transform = f"translate({tx},{ty}) scale({sx},{sy})"
             else:
-                transform = f"translate({x},{y})"
+                _ov = 2.0
+                _f = (T + 2 * _ov) / T
+                transform = f"translate({x - _ov},{y - _ov}) scale({_f})"
 
             tiles.append(f'''<g transform="{transform}">{inner_content}</g>''')
 
@@ -772,6 +774,21 @@ def api_bestelling():
         msg1.attach(MIMEText(html1, 'html'))
         if bijlage:
             msg1.attach(bijlage)
+        # Schone, drukklare SVG's alleen intern meesturen (niet naar de klant)
+        from email.mime.base import MIMEBase
+        from email import encoders as _encoders
+        for _veld, _naam in [('tile_svg_b64', 'dessin_tegel.svg')]:
+            _b64 = data.get(_veld, '')
+            if _b64:
+                try:
+                    _svg_bytes = base64.b64decode(_b64)
+                    _part = MIMEBase('image', 'svg+xml')
+                    _part.set_payload(_svg_bytes)
+                    _encoders.encode_base64(_part)
+                    _part.add_header('Content-Disposition', 'attachment', filename=_naam)
+                    msg1.attach(_part)
+                except Exception as _e:
+                    print("SVG-bijlage fout (" + _naam + "): " + str(_e))
         server.sendmail('appieoosterhof@gmail.com', ['administratie@dcod.nl', 'appieoosterhof@gmail.com'], msg1.as_string())
 
         if email:

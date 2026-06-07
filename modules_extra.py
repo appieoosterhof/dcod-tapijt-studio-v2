@@ -75,34 +75,46 @@ def generate_hexagoon_svg(palette, tile_size, complexity):
     return '\n'.join(s)
 
 def generate_ogee_svg(palette, tile_size, complexity):
-    """Naadloos schubben/scallop patroon. De ronde schubben worden van boven
-    naar onder getekend (lagere rij steeds bovenop), zodat de overlap-richting
-    overeenkomt met de tegel-stapeling en er geen verspringing op de naad
-    ontstaat. Horizontaal naadloos omdat de schubbreedte de tegel exact deelt;
-    verticaal naadloos omdat het aantal rijen een even veelvoud van het aantal
-    kleuren is."""
-    T = tile_size
+    """Naadloze visschub/dakpan-tessellatie. Elke schub is een gesloten vorm:
+    bovenaan een ronde koepel, onderaan begrensd door de cirkels van de twee
+    schubben eronder (holle gebogen zijkanten, geen rechte zijkanten, geen
+    losse cirkels). De vorm is rond van verhouding en sluit perfect in elkaar.
+    Lagere rijen worden later getekend en vallen vooraan. Horizontaal naadloos:
+    schubbreedte deelt de tegel exact. Verticaal naadloos: rijhoogte = halve
+    schubbreedte en het aantal rijen (2x kolommen, even) is een veelvoud van
+    het aantal kleuren."""
+    T = float(tile_size)
     k = _palet(palette)
-    cols = {'low': 4, 'medium': 6, 'high': 9}.get(complexity, 6)
+    cols = {'low': 4, 'medium': 6, 'high': 8}.get(complexity, 6)
     sw = T / cols
-    r = sw * 0.62
+    R = sw / 2.0
+    rh = R
+    rows = 2 * cols
     n_colors = max(1, len(k) - 1)
-    rows_raw = max(n_colors, round(T / (sw * 0.55)))
-    rows = round(rows_raw / n_colors) * n_colors
-    if rows <= 0:
-        rows = n_colors
-    if rows % 2 == 1:
-        rows += n_colors
-    rh = T / rows
     s = ['<rect width="{:.1f}" height="{:.1f}" fill="{}"/>'.format(T, T, k[0])]
+
+    def schub(cx, cy, kleur):
+        # koepel omhoog (eigen cirkel), dan rechter- en linker-scoop langs de
+        # cirkels van de twee schubben eronder; eindigt in punt (cx, cy+R)
+        d = ('M {:.2f} {:.2f} '
+             'A {:.2f} {:.2f} 0 0 1 {:.2f} {:.2f} '
+             'A {:.2f} {:.2f} 0 0 0 {:.2f} {:.2f} '
+             'A {:.2f} {:.2f} 0 0 0 {:.2f} {:.2f} '
+             'Z').format(
+            cx - R, cy,
+            R, R, cx + R, cy,
+            R, R, cx, cy + R,
+            R, R, cx - R, cy)
+        return '<path d="{}" fill="{}"/>'.format(d, kleur)
+
     for row in range(-2, rows + 3):
         kleur = k[1 + (row % n_colors)]
         cy = row * rh
-        for col in range(-1, cols + 2):
-            cx = col * sw + (sw / 2.0 if row % 2 else 0.0)
-            s.append('<circle cx="{:.2f}" cy="{:.2f}" r="{:.2f}" fill="{}"/>'.format(cx, cy, r, kleur))
+        ox = (sw / 2.0) if (row % 2) else 0.0
+        for col in range(-2, cols + 3):
+            cx = col * sw + ox
+            s.append(schub(cx, cy, kleur))
     return chr(10).join(s)
-
 def generate_diamant_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
     nc = {'low': 2, 'medium': 3, 'high': 4}.get(complexity, 3)

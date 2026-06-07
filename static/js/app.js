@@ -276,7 +276,7 @@ async function verstuurBestelling() {
   const res = await fetch('/api/bestelling', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ naam, email, telefoon, bedrijf, wensen, dessin_info, dessin_ref, repeat_type, tegel_maat, resolutie, datum, img_b64, product, afmeting: breedte && lengte ? breedte + ' x ' + lengte + ' cm (' + m2 + ')' : 'Niet opgegeven', staaltje, straat, postcode, plaats, land })
+      body: JSON.stringify({ naam, email, telefoon, bedrijf, wensen, dessin_info, dessin_ref, repeat_type, tegel_maat, resolutie, datum, img_b64, tile_svg_b64: currentTileSvg, repeat_svg_b64: currentRepeatSvg, product, afmeting: breedte && lengte ? breedte + ' x ' + lengte + ' cm (' + m2 + ')' : 'Niet opgegeven', staaltje, straat, postcode, plaats, land })
     });
     const data = await res.json();
     if (data.success) {
@@ -402,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
 (function(){
   var SRC = 600;
   /* vloer-hoekpunten als fractie van de scene (TL,TR,BL,BR) */
-  var FR = [[0.150,0.575],[0.814,0.547],[-0.230,1.0],[1.107,1.0]];
+  var FR = [[0.150,0.547],[0.814,0.547],[-0.230,1.0],[1.107,1.0]];
   function adj(m){return [m[4]*m[8]-m[5]*m[7],m[2]*m[7]-m[1]*m[8],m[1]*m[5]-m[2]*m[4],m[5]*m[6]-m[3]*m[8],m[0]*m[8]-m[2]*m[6],m[2]*m[3]-m[0]*m[5],m[3]*m[7]-m[4]*m[6],m[1]*m[6]-m[0]*m[7],m[0]*m[4]-m[1]*m[3]];}
   function mmm(a,b){var c=[];for(var i=0;i<3;i++)for(var j=0;j<3;j++){var s=0;for(var k=0;k<3;k++)s+=a[3*i+k]*b[3*k+j];c[3*i+j]=s;}return c;}
   function mmv(m,v){return [m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]*v[2],m[6]*v[0]+m[7]*v[1]+m[8]*v[2]];}
