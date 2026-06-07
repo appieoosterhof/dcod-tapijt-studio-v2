@@ -163,7 +163,7 @@ async function generate() {
   const refEl = document.getElementById('dessinRef');
   if (refEl) refEl.textContent = currentDessinRef;
 
-    setStatus('✓ Dessin gegenereerd! Klaar voor export.', 'success');
+    setStatus('✓ Alle dessins zijn vectorgebaseerd. Deze preview is gemaakt in een lage PNG-resolutie; bij bestelling wordt het originele, schaalbare vectorbestand naar DCOD doorgestuurd voor de productie van uw tapijt.', 'success');
 
   } catch (err) {
     setStatus('Verbindingsfout. Is de server actief?', 'error');
