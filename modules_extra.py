@@ -235,7 +235,7 @@ def generate_visgraat_svg(palette, tile_size, complexity):
 
 def generate_dots_svg(palette, tile_size, complexity):
     T = tile_size; k = _palet(palette)
-    n = {'low': 3, 'medium': 4, 'high': 6}.get(complexity, 4)
+    n = {'low': 4, 'medium': 6, 'high': 9}.get(complexity, 6)
     step = T / n
     r = step * 0.35
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
@@ -248,8 +248,6 @@ def generate_dots_svg(palette, tile_size, complexity):
             kleur = k[1 + ((row + col) % (len(k) - 1))]
             s.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" fill="{kleur}"/>')
     return "\n".join(s)
-
-
 def generate_visgraat_lijn_svg(palette, tile_size, complexity):
     """Naadloos 45-graden parket van dikke plankjes in geweven verband.
     De diagonale periode deelt de tegel exact op, dus het patroon sluit

@@ -478,9 +478,7 @@ def build_repeat_svg(tile_svg: str, analysis: dict,
                 ty = y + (T if sy == -1 else 0)
                 transform = f"translate({tx},{ty}) scale({sx},{sy})"
             else:
-                _ov = 2.0
-                _f = (T + 2 * _ov) / T
-                transform = f"translate({x - _ov},{y - _ov}) scale({_f})"
+                transform = f"translate({x},{y})"
 
             tiles.append(f'''<g transform="{transform}">{inner_content}</g>''')
 

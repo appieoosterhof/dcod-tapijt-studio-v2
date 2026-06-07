@@ -2,6 +2,31 @@
 
 let currentTileSvg = null;
 let currentRepeatSvg = null;
+
+// Zet een SVG (base64) om naar een lage-resolutie PNG op een canvas en toont
+// die als bron van het preview-element. Zo komt de schaalbare SVG niet als
+// downloadbare afbeelding in beeld.
+function svgNaarPngPreview(svgB64, elementId, breedte) {
+  try {
+    const img = new Image();
+    img.onload = function() {
+      const verhouding = img.naturalHeight && img.naturalWidth
+        ? (img.naturalHeight / img.naturalWidth) : 1;
+      const w = breedte;
+      const h = Math.round(breedte * verhouding);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const doel = document.getElementById(elementId);
+      if (doel) doel.src = canvas.toDataURL('image/png');
+    };
+    img.src = 'data:image/svg+xml;base64,' + svgB64;
+  } catch (e) {
+    console.log('Preview-render fout:', e);
+  }
+}
 let currentDessinRef = null;
 let currentInfo = null;
 let activeTab = 'repeat';
@@ -56,7 +81,7 @@ async function generate() {
   const apiKey = document.getElementById('apiKey').value.trim();
   const prompt = document.getElementById('prompt').value.trim();
   const tileCm = document.getElementById('tileCm').value;
-  const repeatType = document.getElementById('repeatType').value;
+  const repeatType = 'full';
   const dpi = document.getElementById('dpi').value;
 
   if (!apiKey) return setStatus('Vul eerst uw API-sleutel in.', 'error');
@@ -90,11 +115,9 @@ async function generate() {
     currentRepeatSvg = data.repeat_svg_b64;
     currentInfo = data.info;
 
-    // Preview tonen
-    const tileUrl = 'data:image/svg+xml;base64,' + data.tile_svg_b64;
-    const repeatUrl = 'data:image/svg+xml;base64,' + data.repeat_svg_b64;
-    document.getElementById('previewTile').src = tileUrl;
-    document.getElementById('previewRepeat').src = repeatUrl;
+    // Preview tonen als lage-resolutie PNG (SVG niet zichtbaar/downloadbaar)
+    svgNaarPngPreview(data.tile_svg_b64, 'previewTile', 350);
+    svgNaarPngPreview(data.repeat_svg_b64, 'previewRepeat', 700);
     document.getElementById('previewTile').style.display = activeTab === 'tile' ? 'block' : 'none';
     document.getElementById('previewRepeat').style.display = activeTab === 'repeat' ? 'block' : 'none';
     document.getElementById('emptyState').style.display = 'none';
@@ -161,7 +184,7 @@ async function exportFile(format, type) {
   const svgB64 = type === 'tile' ? currentTileSvg : currentRepeatSvg;
   const cm = document.getElementById('tileCm').value;
   const dpi = document.getElementById('dpi').value;
-  const repeatType = document.getElementById('repeatType').value;
+  const repeatType = 'full';
   const ts = Date.now();
   const filename = `dessin_${type}_${cm}cm_${dpi}dpi_${ts}.${format}`;
 
@@ -241,7 +264,7 @@ async function verstuurBestelling() {
   const bedrijf = document.getElementById('bestelBedrijf')?.value.trim() || '';
   const dessin_info = document.getElementById('descText')?.textContent || '';
   const dessin_ref = currentDessinRef || 'Onbekend';
-  const repeat_type = document.getElementById('repeatType')?.options[document.getElementById('repeatType')?.selectedIndex]?.text || '';
+  const repeat_type = 'Full repeat';
   const tegel_maat = document.getElementById('tileCm')?.options[document.getElementById('tileCm')?.selectedIndex]?.text || '';
   const resolutie = document.getElementById('dpi')?.options[document.getElementById('dpi')?.selectedIndex]?.text || '';
   const datum = new Date().toLocaleDateString('nl-NL', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
