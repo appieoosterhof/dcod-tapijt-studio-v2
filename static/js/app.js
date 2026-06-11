@@ -292,7 +292,7 @@ async function verstuurBestelling() {
   const res = await fetch('/api/bestelling', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ naam, email, telefoon, bedrijf, wensen, dessin_info, dessin_ref, repeat_type, tegel_maat, resolutie, datum, img_b64, tile_svg_b64: currentTileSvg, repeat_svg_b64: currentRepeatSvg, product, afmeting: breedte && lengte ? breedte + ' x ' + lengte + ' cm (' + m2 + ')' : 'Niet opgegeven', staaltje, straat, postcode, plaats, land })
+      body: JSON.stringify({ kleuren: ([0,1,2,3,4].map(function(i){var lbls=['achtergrond','primair','secondair','accent 1','accent 2'];var hx=(document.getElementById('kleur'+i+'hex')||document.getElementById('kleur'+i)||{}).value||'';var r=(document.getElementById('kleur'+i+'r')||{}).value||'';var g=(document.getElementById('kleur'+i+'g')||{}).value||'';var b=(document.getElementById('kleur'+i+'b')||{}).value||'';return {label:lbls[i],hex:hx,r:r,g:g,b:b};})), naam, email, telefoon, bedrijf, wensen, dessin_info, dessin_ref, repeat_type, tegel_maat, resolutie, datum, img_b64, tile_svg_b64: currentTileSvg, repeat_svg_b64: currentRepeatSvg, product, afmeting: breedte && lengte ? breedte + ' x ' + lengte + ' cm (' + m2 + ')' : 'Niet opgegeven', staaltje, straat, postcode, plaats, land })
     });
     const data = await res.json();
     if (data.success) {

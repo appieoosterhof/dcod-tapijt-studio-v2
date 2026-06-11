@@ -730,6 +730,19 @@ def api_bestelling():
         tegel_maat = data.get('tegel_maat', '')
         resolutie = data.get('resolutie', '')
         datum = data.get('datum', '')
+        # Gekozen dessin-kleuren (HEX + RGB) -> alleen voor interne mail
+        kleuren = data.get('kleuren', []) or []
+        kleuren_rows = ''
+        for _k in kleuren:
+            _hex = (_k.get('hex') or '').strip()
+            if not _hex:
+                continue
+            _lbl = _k.get('label', '')
+            _r = _k.get('r', ''); _g = _k.get('g', ''); _b = _k.get('b', '')
+            _rgb = f'{_r}, {_g}, {_b}' if (_r != '' and _g != '' and _b != '') else ''
+            _swatch = f'<span style="display:inline-block;width:14px;height:14px;border:1px solid #999;background:{_hex};vertical-align:middle;margin-right:6px"></span>'
+            _waarde = f'{_swatch}{_hex}' + (f' &nbsp; RGB {_rgb}' if _rgb else '')
+            kleuren_rows += f'<tr><td style="padding:8px;background:#E8F0E6;font-weight:bold">Kleur ({_lbl})</td><td style="padding:8px">{_waarde}</td></tr>'
         bedrijf = data.get('bedrijf', '')
         msg = MIMEMultipart('alternative')
         msg['Subject'] = f'Nieuwe tapijt offerte - {naam}'
@@ -793,6 +806,7 @@ def api_bestelling():
             + f'<tr><td style="padding:8px;background:#E8F0E6;font-weight:bold">Dessin</td><td style="padding:8px">{dessin_info}</td></tr>'
             + f'<tr><td style="padding:8px;background:#E8F0E6;font-weight:bold">Wensen</td><td style="padding:8px">{wensen}</td></tr>'
             + f'<tr><td style="padding:8px;background:#E8F0E6;font-weight:bold">Staaltje</td><td style="padding:8px">{staaltje}</td></tr>'+ (f'<tr><td style="padding:8px;background:#E8F0E6;font-weight:bold">Afleveradres</td><td style="padding:8px">{adres_volledig}</td></tr>' if adres_volledig else '')
+            + kleuren_rows
             + '</table></body></html>')
         msg1.attach(MIMEText(html1, 'html'))
         if bijlage:
