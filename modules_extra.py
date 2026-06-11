@@ -519,3 +519,39 @@ def generate_houndstooth_svg(palette, tile_size, complexity):
             pts = ' '.join('%.2f,%.2f' % (x*s + ox, y*s + oy) for x, y in base)
             parts.append('<polygon points="%s" fill="%s"/>' % (pts, c_fg))
     return '\n'.join(parts)
+
+
+def generate_urban_plaid_svg(palette, tile_size, complexity):
+    """Urban Plaid (tartan/ruit): naadloos raster van horizontale en verticale
+    banden met wisselende diktes; kruispunten mengen via opacity (geweven
+    tartan-effect). Geen clipPath (Safari-proof).
+    Kleur via _palet: k[0]=achtergrond, k[1]/k[2]=bandkleuren."""
+    T = float(tile_size)
+    k = _palet(palette)
+    bg = k[0]; c1 = k[1]; c2 = k[2]
+    # sett: (breedte-eenheden, kleur). 0 = achtergrond (geen band).
+    sett = [
+        (8, 0), (10, c1), (2, c1), (4, 0), (2, c1), (6, 0), (1, c1), (3, 0), (1, c1), (4, 0),
+        (16, c1),
+        (4, 0), (2, c1), (2, 0), (2, c1), (4, 0),
+        (6, c2), (2, 0), (6, c2),
+        (4, 0), (1, c1), (2, 0), (1, c1), (4, 0),
+        (12, c1), (3, 0), (3, c1),
+        (6, 0),
+    ]
+    tot = sum(w for w, _ in sett)
+    scale = T / tot
+    bands = []
+    pos = 0.0
+    for w, col in sett:
+        ww = w * scale
+        if col != 0:
+            bands.append((pos, ww, col))
+        pos += ww
+    op = "0.55"
+    parts = ['<rect width="%.1f" height="%.1f" fill="%s"/>' % (T, T, bg)]
+    for x, w, col in bands:
+        parts.append('<rect x="%.2f" y="0" width="%.2f" height="%.1f" fill="%s" opacity="%s"/>' % (x, w, T, col, op))
+    for y, w, col in bands:
+        parts.append('<rect x="0" y="%.2f" width="%.1f" height="%.2f" fill="%s" opacity="%s"/>' % (y, T, w, col, op))
+    return '\n'.join(parts)

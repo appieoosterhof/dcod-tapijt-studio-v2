@@ -18,7 +18,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import anthropic
 from PIL import Image, ImageDraw
-from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg, generate_bamboe_svg, generate_artdeco_svg, generate_chevron_bold_svg, generate_houndstooth_svg
+from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg, generate_bamboe_svg, generate_artdeco_svg, generate_chevron_bold_svg, generate_houndstooth_svg, generate_urban_plaid_svg
 from modules_extra import generate_artdeco_svg, generate_artdeco_hex_svg
 
 app = Flask(__name__)
@@ -335,6 +335,7 @@ STYLE_GENERATORS = {
     "chevron": generate_chevron_svg,
     "chevron_bold": generate_chevron_bold_svg,
     "houndstooth": generate_houndstooth_svg,
+    "urban_plaid": generate_urban_plaid_svg,
     "hexagon": generate_hexagoon_svg,
     "ogee": generate_ogee_svg,
     "diamant": generate_diamant_svg,
@@ -360,6 +361,8 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "chevron_bold"
     elif style == "houndstooth" or any(w in p for w in ["houndstooth", "hanenpoot", "pied-de-poule", "pied de poule", "pita"]):
         style = "houndstooth"
+    elif style == "urban_plaid" or any(w in p for w in ["urban plaid", "plaid", "tartan", "ruit", "schots"]):
+        style = "urban_plaid"
     elif any(w in p for w in ["chevron", "zigzag"]):
         style = "chevron"
     elif any(w in p for w in ["hexagon", "honingraat", "zeshoek"]):
@@ -383,6 +386,8 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "chevron_bold"
     elif style == "houndstooth" or any(w in prompt_lower for w in ["houndstooth", "hanenpoot", "pied-de-poule", "pied de poule", "pita"]):
         style = "houndstooth"
+    elif style == "urban_plaid" or any(w in prompt_lower for w in ["urban plaid", "plaid", "tartan", "ruit", "schots"]):
+        style = "urban_plaid"
     elif any(w in prompt_lower for w in ["chevron", "zigzag", "pijl"]):
         style = "chevron"
     elif any(w in prompt_lower for w in ["hexagon", "honingraat", "zeshoek"]):
@@ -422,7 +427,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     if n < 1:
         n = 1
     g = TEGEL // n  # interne grootte waarop de generator tekent
-    extra_styles = ["strepen","mozaiek","chevron","chevron_bold","houndstooth","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex"]
+    extra_styles = ["strepen","mozaiek","chevron","chevron_bold","houndstooth","urban_plaid","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
     if style in extra_styles:
@@ -576,6 +581,8 @@ def api_generate():
             analysis['style'] = 'chevron_bold'
         elif analysis.get('style') == 'houndstooth' or any(w in p for w in ['houndstooth', 'hanenpoot', 'pied-de-poule', 'pied de poule', 'pita']):
             analysis['style'] = 'houndstooth'
+        elif analysis.get('style') == 'urban_plaid' or any(w in p for w in ['urban plaid', 'plaid', 'tartan', 'ruit', 'schots']):
+            analysis['style'] = 'urban_plaid'
         elif any(w in p for w in ['chevron', 'zigzag']):
             analysis['style'] = 'chevron'
         elif any(w in p for w in ['hexagon', 'honingraat', 'zeshoek']):
@@ -624,6 +631,7 @@ def api_generate():
             (['dots', 'stippen', 'polka'], 'dots'),
             (['chevronbold', 'chevron bold', 'chevron blok'], 'chevron_bold'),
             (['houndstooth', 'hanenpoot', 'pied-de-poule', 'pied de poule', 'pita'], 'houndstooth'),
+            (['urban plaid', 'plaid', 'tartan', 'ruit', 'schots'], 'urban_plaid'),
             (['chevron', 'zigzag'], 'chevron'),
             (['hexagon', 'honingraat', 'zeshoek'], 'hexagon'),
             (['nordic', 'scandinavisch', 'noors'], 'nordic'),
