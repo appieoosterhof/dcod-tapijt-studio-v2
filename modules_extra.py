@@ -172,36 +172,44 @@ def generate_terrazzo_svg(palette, tile_size, complexity, schaal=100):
     return '\n'.join(s)
 
 def generate_vrije_vormen_svg(palette, tile_size, complexity):
+    """Rijke organische vormen: veel overlappende veelhoeken, alle paletkleuren
+    door elkaar, gelijkmatig verspreid, naadloos via wrap. Willekeurige seed ->
+    elke generatie anders. Geen clipPath (Safari-proof)."""
     import random as _r
-    T = tile_size; k = _palet(palette); rng = _r.Random(99)
+    T = tile_size; k = _palet(palette); rng = _r.Random()
     s = [f'<rect width="{T}" height="{T}" fill="{k[0]}"/>']
-    n = {'low': 4, 'medium': 7, 'high': 11}.get(complexity, 7)
-    def vorm(cx, cy, r, sides, offsets, kleur):
-        pts = []
-        for j, off in enumerate(offsets):
-            a = math.radians(j * 360 / sides + off)
-            rd = r * rng.uniform(0.6, 1.2)
-            pts.append(f'{cx+rd*math.cos(a):.1f},{cy+rd*math.sin(a):.1f}')
-        pts_str = ' '.join(pts)
-        return f'<polygon points="{pts_str}" fill="{kleur}" opacity="0.82"/>'
+    n = {'low': 12, 'medium': 20, 'high': 30}.get(complexity, 20)
+    cols = max(3, int(n ** 0.5) + 1); rows = max(3, (n + cols - 1) // cols)
+    sx = T / cols; sy = T / rows
     shapes = []
-    grid = int(n ** 0.5) + 1; cel = T / grid
-    for i in range(n):
-        row = i // grid; col = i % grid
-        cx = col * cel + rng.uniform(cel * 0.1, cel * 0.9)
-        cy = row * cel + rng.uniform(cel * 0.1, cel * 0.9)
-        r = rng.uniform(T * 0.06, T * 0.14)
-        sides = rng.randint(4, 8)
-        offsets = [rng.uniform(-25, 25) for _ in range(sides)]
-        kleur = k[(i + 1) % len(k)]
-        shapes.append((cx, cy, r, sides, offsets, kleur))
-    for cx, cy, r, sides, offsets, kleur in shapes:
-        for dx in [0, T, -T]:
-            for dy in [0, T, -T]:
+    idx = 0
+    for row in range(rows):
+        for col in range(cols):
+            if idx >= n: break
+            cx = (col + 0.5) * sx + rng.uniform(-sx * 0.35, sx * 0.35)
+            cy = (row + 0.5) * sy + rng.uniform(-sy * 0.35, sy * 0.35)
+            r = rng.uniform(T * 0.09, T * 0.17)
+            sides = rng.randint(5, 9)
+            offs = [rng.uniform(-18, 18) for _ in range(sides)]
+            rads = [r * rng.uniform(0.7, 1.25) for _ in range(sides)]
+            kleur = k[rng.randint(1, 4)]
+            shapes.append((cx % T, cy % T, sides, offs, rads, kleur))
+            idx += 1
+    def vorm(cx, cy, sides, offs, rads, kleur):
+        pts = []
+        for j in range(sides):
+            a = math.radians(j * 360 / sides + offs[j])
+            pts.append(f'{cx+rads[j]*math.cos(a):.1f},{cy+rads[j]*math.sin(a):.1f}')
+        return f'<polygon points="{" ".join(pts)}" fill="{kleur}" opacity="0.88"/>'
+    for cx, cy, sides, offs, rads, kleur in shapes:
+        mr = max(rads)
+        for dx in (0, T, -T):
+            for dy in (0, T, -T):
                 nx, ny = cx + dx, cy + dy
-                if -r < nx < T + r and -r < ny < T + r:
-                    s.append(vorm(nx, ny, r, sides, offsets, kleur))
+                if -mr < nx < T + mr and -mr < ny < T + mr:
+                    s.append(vorm(nx, ny, sides, offs, rads, kleur))
     return '\n'.join(s)
+
 
 def generate_visgraat_svg(palette, tile_size, complexity):
     """Klassiek visgraat/herringbone patroon met afwisselend H en V blokken."""
@@ -414,3 +422,100 @@ def generate_artdeco_hex_svg(palette, tile_size, complexity):
             cy = row * cs
             motief(cx, cy)
     return chr(10).join(s)
+
+
+def generate_chevron_bold_svg(palette, tile_size, complexity):
+    """Chevron Bold: versprongen 45-graden velden, helling spiegelt per veld.
+    Banden worden in Python bijgesneden op zowel de kolomgrenzen als de
+    tegelranden (0..T), zodat de SVG alleen schone polygonen binnen de tegel
+    bevat -- geen SVG clipPath (Safari-proof in base64-<img>). Naadloos.
+    Kleur via _palet: k[0]=achtergrond, k[1]=bandkleur."""
+    T = float(tile_size)
+    k = _palet(palette)
+    c_band = k[1]
+    c_bg = k[0]
+    n_cols = {'low': 3, 'medium': 4, 'high': 6}.get(complexity, 4)
+    cw = T / n_cols
+    stripe_w = cw * 0.5
+    step = stripe_w * 2.0
+
+    def _clip(pts, xmin, xmax, ymin, ymax):
+        def edge(poly, inside, ix):
+            out = []
+            n = len(poly)
+            for i in range(n):
+                cur = poly[i]; prv = poly[i-1]
+                ci = inside(cur); pi = inside(prv)
+                if ci:
+                    if not pi:
+                        out.append(ix(prv, cur))
+                    out.append(cur)
+                elif pi:
+                    out.append(ix(prv, cur))
+            return out
+        def ixx(a, b, xv):
+            (x1, y1), (x2, y2) = a, b
+            if x2 == x1:
+                return (xv, y1)
+            t = (xv - x1) / (x2 - x1)
+            return (xv, y1 + t * (y2 - y1))
+        def ixy(a, b, yv):
+            (x1, y1), (x2, y2) = a, b
+            if y2 == y1:
+                return (x1, yv)
+            t = (yv - y1) / (y2 - y1)
+            return (x1 + t * (x2 - x1), yv)
+        poly = pts
+        poly = edge(poly, lambda p: p[0] >= xmin, lambda a, b: ixx(a, b, xmin))
+        if not poly: return []
+        poly = edge(poly, lambda p: p[0] <= xmax, lambda a, b: ixx(a, b, xmax))
+        if not poly: return []
+        poly = edge(poly, lambda p: p[1] >= ymin, lambda a, b: ixy(a, b, ymin))
+        if not poly: return []
+        poly = edge(poly, lambda p: p[1] <= ymax, lambda a, b: ixy(a, b, ymax))
+        return poly
+
+    s = ['<rect width="%.1f" height="%.1f" fill="%s"/>' % (T, T, c_bg)]
+    for col in range(n_cols):
+        x0 = col * cw
+        x1 = x0 + cw
+        slope = 1 if (col % 2 == 0) else -1
+        voff = col * step * 0.5
+        c = -int((T + cw) / step) - 6
+        while c * step < 2 * T + cw + 6 * step:
+            yb = c * step + voff
+            if slope == 1:
+                pts = [(x0, yb), (x0, yb + stripe_w),
+                       (x1, yb + stripe_w - cw), (x1, yb - cw)]
+            else:
+                pts = [(x0, yb), (x0, yb + stripe_w),
+                       (x1, yb + stripe_w + cw), (x1, yb + cw)]
+            clipped = _clip(pts, x0, x1, 0.0, T)
+            if len(clipped) >= 3:
+                pts_str = ' '.join('%.2f,%.2f' % (px, py) for px, py in clipped)
+                s.append('<polygon points="%s" fill="%s"/>' % (pts_str, c_band))
+            c += 1
+    return '\n'.join(s)
+
+
+def generate_houndstooth_svg(palette, tile_size, complexity):
+    """Echte pied-de-poule (hanenpoot): de karakteristieke haakvorm, meerdere
+    keren per tegel herhaald voor de fijne geweven textuur. Dichtheid via
+    complexiteit (low=3, medium=4, high=6). Geen clipPath (Safari-proof).
+    Naadloos via wrap. Kleur: k[0]=achtergrond, k[1]=motief."""
+    T = float(tile_size)
+    k = _palet(palette)
+    c_bg = k[0]
+    c_fg = k[1]
+    n_rep = {'low': 3, 'medium': 4, 'high': 6}.get(complexity, 4)
+    unit = T / n_rep
+    s = unit / 4.0
+    base = [(0,2),(2,0),(2,1),(3,1),(3,0),(4,0),(4,2),(2,4),(2,3),(1,3),(1,4),(0,4)]
+    parts = ['<rect width="%.1f" height="%.1f" fill="%s"/>' % (T, T, c_bg)]
+    for i in range(-1, n_rep + 1):
+        for j in range(-1, n_rep + 1):
+            ox = i * unit
+            oy = j * unit
+            pts = ' '.join('%.2f,%.2f' % (x*s + ox, y*s + oy) for x, y in base)
+            parts.append('<polygon points="%s" fill="%s"/>' % (pts, c_fg))
+    return '\n'.join(parts)

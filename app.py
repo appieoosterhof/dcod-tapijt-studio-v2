@@ -18,7 +18,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import anthropic
 from PIL import Image, ImageDraw
-from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg, generate_bamboe_svg, generate_artdeco_svg
+from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg, generate_bamboe_svg, generate_artdeco_svg, generate_chevron_bold_svg, generate_houndstooth_svg
 from modules_extra import generate_artdeco_svg, generate_artdeco_hex_svg
 
 app = Flask(__name__)
@@ -333,6 +333,8 @@ STYLE_GENERATORS = {
     "strepen": generate_strepen_svg,
     "mozaiek": generate_mozaiek_svg,
     "chevron": generate_chevron_svg,
+    "chevron_bold": generate_chevron_bold_svg,
+    "houndstooth": generate_houndstooth_svg,
     "hexagon": generate_hexagoon_svg,
     "ogee": generate_ogee_svg,
     "diamant": generate_diamant_svg,
@@ -354,6 +356,10 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "strepen"
     elif any(w in p for w in ["mozaiek", "pixel", "blokje"]):
         style = "mozaiek"
+    elif any(w in p for w in ["chevronbold", "chevron bold", "chevron blok"]):
+        style = "chevron_bold"
+    elif style == "houndstooth" or any(w in p for w in ["houndstooth", "hanenpoot", "pied-de-poule", "pied de poule", "pita"]):
+        style = "houndstooth"
     elif any(w in p for w in ["chevron", "zigzag"]):
         style = "chevron"
     elif any(w in p for w in ["hexagon", "honingraat", "zeshoek"]):
@@ -373,6 +379,10 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "strepen"
     elif any(w in prompt_lower for w in ["mozaiek", "pixel", "blokje"]):
         style = "mozaiek"
+    elif style == "chevron_bold" or any(w in prompt_lower for w in ["chevronbold", "chevron bold", "chevron blok"]):
+        style = "chevron_bold"
+    elif style == "houndstooth" or any(w in prompt_lower for w in ["houndstooth", "hanenpoot", "pied-de-poule", "pied de poule", "pita"]):
+        style = "houndstooth"
     elif any(w in prompt_lower for w in ["chevron", "zigzag", "pijl"]):
         style = "chevron"
     elif any(w in prompt_lower for w in ["hexagon", "honingraat", "zeshoek"]):
@@ -412,7 +422,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     if n < 1:
         n = 1
     g = TEGEL // n  # interne grootte waarop de generator tekent
-    extra_styles = ["strepen","mozaiek","chevron","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex"]
+    extra_styles = ["strepen","mozaiek","chevron","chevron_bold","houndstooth","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
     if style in extra_styles:
@@ -450,6 +460,7 @@ def build_repeat_svg(tile_svg: str, analysis: dict,
                      dpi: int, cols: int = 3, rows: int = 3) -> str:
     """Bouw een all-over repeat SVG met het opgegeven repeat-type."""
     T = 400
+    OVERLAP_SCALE = 1.006  # minieme tegel-overlap om haarlijn-naden te dichten
     bg_color = analysis.get('palette', {}).get('background', '#F5F5F5')
     total_w = T * cols
     total_h = T * rows
@@ -476,9 +487,9 @@ def build_repeat_svg(tile_svg: str, analysis: dict,
                 sy = -1 if r % 2 == 1 else 1
                 tx = x + (T if sx == -1 else 0)
                 ty = y + (T if sy == -1 else 0)
-                transform = f"translate({tx},{ty}) scale({sx},{sy})"
+                transform = f"translate({tx},{ty}) scale({sx*OVERLAP_SCALE},{sy*OVERLAP_SCALE})"
             else:
-                transform = f"translate({x},{y})"
+                transform = f"translate({x},{y}) scale({OVERLAP_SCALE})"
 
             tiles.append(f'''<g transform="{transform}">{inner_content}</g>''')
 
@@ -561,6 +572,10 @@ def api_generate():
             analysis['style'] = 'strepen'
         elif any(w in p for w in ['mozaiek', 'pixel', 'blokje']):
             analysis['style'] = 'mozaiek'
+        elif any(w in p for w in ['chevronbold', 'chevron bold', 'chevron blok']):
+            analysis['style'] = 'chevron_bold'
+        elif analysis.get('style') == 'houndstooth' or any(w in p for w in ['houndstooth', 'hanenpoot', 'pied-de-poule', 'pied de poule', 'pita']):
+            analysis['style'] = 'houndstooth'
         elif any(w in p for w in ['chevron', 'zigzag']):
             analysis['style'] = 'chevron'
         elif any(w in p for w in ['hexagon', 'honingraat', 'zeshoek']):
@@ -607,6 +622,8 @@ def api_generate():
             (['visgraat', 'herringbone'], 'visgraat'),
             (['strepen', 'streep', 'stripe'], 'strepen'),
             (['dots', 'stippen', 'polka'], 'dots'),
+            (['chevronbold', 'chevron bold', 'chevron blok'], 'chevron_bold'),
+            (['houndstooth', 'hanenpoot', 'pied-de-poule', 'pied de poule', 'pita'], 'houndstooth'),
             (['chevron', 'zigzag'], 'chevron'),
             (['hexagon', 'honingraat', 'zeshoek'], 'hexagon'),
             (['nordic', 'scandinavisch', 'noors'], 'nordic'),

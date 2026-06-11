@@ -8,21 +8,13 @@ let currentRepeatSvg = null;
 // downloadbare afbeelding in beeld.
 function svgNaarPngPreview(svgB64, elementId, breedte) {
   try {
-    const img = new Image();
-    img.onload = function() {
-      const verhouding = img.naturalHeight && img.naturalWidth
-        ? (img.naturalHeight / img.naturalWidth) : 1;
-      const w = breedte;
-      const h = Math.round(breedte * verhouding);
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      const doel = document.getElementById(elementId);
-      if (doel) doel.src = canvas.toDataURL('image/png');
-    };
-    img.src = 'data:image/svg+xml;base64,' + svgB64;
+    const doel = document.getElementById(elementId);
+    if (doel) {
+      // SVG rechtstreeks tonen (geen canvas-tussenstap; voorkomt vervorming
+      // bij SVG's met alleen viewBox). Cachebuster via leegmaken + nieuwe src.
+      doel.src = '';
+      doel.src = 'data:image/svg+xml;base64,' + svgB64;
+    }
   } catch (e) {
     console.log('Preview-render fout:', e);
   }
@@ -98,6 +90,7 @@ async function generate() {
   try {
     const response = await fetch('/api/generate', {
       method: 'POST',
+      cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt, api_key: apiKey, tile_cm: tileCm, repeat_type: repeatType, dpi, motief_schaal: (parseInt(document.getElementById('motiefSchaal')?.value) || 100), aangepast_palet: (document.getElementById('gebruikKleuren')?.checked ? { background: document.getElementById('kleur0')?.value, primary: document.getElementById('kleur1')?.value, secondary: document.getElementById('kleur2')?.value, accent1: document.getElementById('kleur3')?.value, accent2: document.getElementById('kleur4')?.value } : null) })
     });
