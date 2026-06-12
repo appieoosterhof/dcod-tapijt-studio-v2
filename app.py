@@ -456,7 +456,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "chevron_bold"
     elif style == "houndstooth" or any(w in p for w in ["houndstooth", "hanenpoot", "pied-de-poule", "pied de poule", "pita"]):
         style = "houndstooth"
-    elif style == "urban_plaid" or any(w in p for w in ["urban plaid", "plaid", "tartan", "ruit", "schots"]):
+    elif style == "urban_plaid" or any(w in p for w in ["urban plaid", "plaid", "tartan", "schots"]):
         style = "urban_plaid"
     elif any(w in p for w in ["chevron", "zigzag"]):
         style = "chevron"
@@ -485,7 +485,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "chevron_bold"
     elif style == "houndstooth" or any(w in prompt_lower for w in ["houndstooth", "hanenpoot", "pied-de-poule", "pied de poule", "pita"]):
         style = "houndstooth"
-    elif style == "urban_plaid" or any(w in prompt_lower for w in ["urban plaid", "plaid", "tartan", "ruit", "schots"]):
+    elif style == "urban_plaid" or any(w in prompt_lower for w in ["urban plaid", "plaid", "tartan", "schots"]):
         style = "urban_plaid"
     elif any(w in prompt_lower for w in ["chevron", "zigzag", "pijl"]):
         style = "chevron"
@@ -684,7 +684,7 @@ def api_generate():
             analysis['style'] = 'houndstooth'
         elif any(w in p for w in ['knitwerk', 'knit', 'gebreid', 'breiwerk', 'fair isle', 'noorse trui', 'nordic', 'scandinavisch', 'noors', 'sneeuwvlok']):
             analysis['style'] = 'knitwerk'
-        elif analysis.get('style') == 'urban_plaid' or any(w in p for w in ['urban plaid', 'plaid', 'tartan', 'ruit', 'schots']):
+        elif analysis.get('style') == 'urban_plaid' or any(w in p for w in ['urban plaid', 'plaid', 'tartan', 'schots']):
             analysis['style'] = 'urban_plaid'
         elif any(w in p for w in ['chevron', 'zigzag']):
             analysis['style'] = 'chevron'
@@ -734,7 +734,7 @@ def api_generate():
             (['chevronbold', 'chevron bold', 'chevron blok'], 'chevron_bold'),
             (['houndstooth', 'hanenpoot', 'pied-de-poule', 'pied de poule', 'pita'], 'houndstooth'),
             (['knitwerk', 'knit', 'gebreid', 'breiwerk', 'fair isle', 'noorse trui', 'nordic', 'scandinavisch', 'noors'], 'knitwerk'),
-            (['urban plaid', 'plaid', 'tartan', 'ruit', 'schots'], 'urban_plaid'),
+            (['urban plaid', 'plaid', 'tartan', 'schots'], 'urban_plaid'),
             (['chevron', 'zigzag'], 'chevron'),
             (['hexagon', 'honingraat', 'zeshoek'], 'hexagon'),
             (['vrije vorm', 'organisch', 'vloeiend'], 'vrije vormen'),
