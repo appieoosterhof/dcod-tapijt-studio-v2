@@ -20,6 +20,7 @@ import anthropic
 from PIL import Image, ImageDraw
 from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg, generate_bamboe_svg, generate_artdeco_svg, generate_chevron_bold_svg, generate_houndstooth_svg, generate_urban_plaid_svg
 from modules_extra import generate_artdeco_svg, generate_artdeco_hex_svg
+from modules_extra import generate_hoogtelijnen_svg
 
 app = Flask(__name__)
 CORS(app)
@@ -433,6 +434,7 @@ STYLE_GENERATORS = {
     "terrazzo": generate_terrazzo_svg,
     "visgraat": generate_visgraat_lijn_svg,
     "dots": generate_dots_svg,
+    "hoogtelijnen": generate_hoogtelijnen_svg,
     "vrije_vormen": generate_vrije_vormen_svg,
     "bamboe": generate_bamboe_svg,
     "art_deco_hex": generate_artdeco_hex_svg,
@@ -448,6 +450,8 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "bauhaus"
     elif style == "knitwerk" or any(w in p for w in ['knitwerk', 'knit', 'gebreid', 'breiwerk', 'fair isle', 'noorse trui', 'nordic', 'scandinavisch', 'noors', 'sneeuwvlok']):
         style = "knitwerk"
+    elif style == "hoogtelijnen" or any(w in p for w in ["hoogtelijn", "topografie", "contour"]):
+        style = "hoogtelijnen"
     elif any(w in p for w in ["streep", "strepen", "stripe"]):
         style = "strepen"
     elif any(w in p for w in ["mozaiek", "pixel", "blokje"]):
@@ -477,6 +481,8 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         pass
     elif style == "knitwerk":
         pass
+    elif style == "hoogtelijnen" or any(w in prompt_lower for w in ["hoogtelijn", "topografie", "contour"]):
+        style = "hoogtelijnen"
     elif any(w in prompt_lower for w in ["streep", "strepen", "stripe", "verticale lijn"]):
         style = "strepen"
     elif any(w in prompt_lower for w in ["mozaiek", "pixel", "blokje"]):
@@ -526,7 +532,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     if n < 1:
         n = 1
     g = TEGEL // n  # interne grootte waarop de generator tekent
-    extra_styles = ["bauhaus","knitwerk","strepen","mozaiek","chevron","chevron_bold","houndstooth","urban_plaid","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex"]
+    extra_styles = ["bauhaus","knitwerk","strepen","mozaiek","chevron","chevron_bold","houndstooth","urban_plaid","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","hoogtelijnen","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
     if style in extra_styles:

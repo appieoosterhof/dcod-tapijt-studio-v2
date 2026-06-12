@@ -555,3 +555,63 @@ def generate_urban_plaid_svg(palette, tile_size, complexity):
     for y, w, col in bands:
         parts.append('<rect x="0" y="%.2f" width="%.1f" height="%.2f" fill="%s" opacity="%s"/>' % (y, T, w, col, op))
     return '\n'.join(parts)
+
+
+# ---- Hoogtelijnen (topografische contourlijnen) - naadloos ----
+def _topo_segments(T, complexity):
+    fmax = {'low':3.4,'medium':4.6,'high':6.2}.get(complexity,4.6)
+    levn = {'low':11,'medium':14,'high':18}.get(complexity,14)
+    G = 120
+    rng = random.Random(7)
+    comps=[]
+    for _ in range(28):
+        fr = rng.uniform(1.0,fmax); ang=rng.uniform(0,2*math.pi)
+        u = round(fr*math.cos(ang)); v=round(fr*math.sin(ang))
+        if u==0 and v==0: u=1
+        comps.append((u,v,1.0/fr,rng.uniform(0,2*math.pi)))
+    F=[[0.0]*(G+1) for _ in range(G+1)]
+    mn=1e9; mx=-1e9
+    for i in range(G+1):
+        y=i/G
+        for j in range(G+1):
+            x=j/G; s=0.0
+            for (u,vv,a,ph) in comps:
+                s+=a*math.cos(2*math.pi*(u*x+vv*y)+ph)
+            F[i][j]=s
+            if s<mn:mn=s
+            if s>mx:mx=s
+    rg=mx-mn or 1.0
+    for i in range(G+1):
+        for j in range(G+1):
+            F[i][j]=(F[i][j]-mn)/rg
+    def ep(L,ax,ay,av,bx,by,bv):
+        d=bv-av; t=0.5 if abs(d)<1e-12 else (L-av)/d
+        return (ax+(bx-ax)*t, ay+(by-ay)*t)
+    sc=T/G; segs=[]
+    levels=[0.06+(0.94-0.06)*k/(levn-1) for k in range(levn)]
+    for L in levels:
+        for i in range(G):
+            for j in range(G):
+                a=F[i][j]>=L; b=F[i][j+1]>=L; c=F[i+1][j+1]>=L; d=F[i+1][j]>=L
+                code=(a)|(b<<1)|(c<<2)|(d<<3)
+                if code==0 or code==15: continue
+                av=F[i][j]; bv=F[i][j+1]; cv=F[i+1][j+1]; dv=F[i+1][j]
+                P={}
+                if a!=b: P['T']=ep(L,j,i,av,j+1,i,bv)
+                if b!=c: P['R']=ep(L,j+1,i,bv,j+1,i+1,cv)
+                if c!=d: P['B']=ep(L,j+1,i+1,cv,j,i+1,dv)
+                if d!=a: P['L']=ep(L,j,i+1,dv,j,i,av)
+                e=list(P)
+                if len(e)==2:
+                    segs.append((P[e[0]],P[e[1]]))
+                elif len(e)==4:
+                    segs.append((P['T'],P['R'])); segs.append((P['B'],P['L']))
+    return [((p[0]*sc,p[1]*sc),(q[0]*sc,q[1]*sc)) for (p,q) in segs]
+
+def generate_hoogtelijnen_svg(palette, tile_size, complexity):
+    T=tile_size; k=_palet(palette); line=k[1]; lw=max(1.0, T/230.0)
+    segs=_topo_segments(T, complexity)
+    d=''.join('M{:.1f} {:.1f}L{:.1f} {:.1f}'.format(p[0],p[1],q[0],q[1]) for (p,q) in segs)
+    return ('<rect width="{T}" height="{T}" fill="{bg}"/>'
+            '<path d="{d}" stroke="{line}" stroke-width="{lw:.2f}" fill="none" stroke-linecap="round"/>'
+            ).format(T=T,bg=k[0],d=d,line=line,lw=lw)
