@@ -265,71 +265,162 @@ def generate_medallion_svg(palette: dict, tile_size: int, complexity: str) -> st
     return "\n".join(shapes)
 
 
-def generate_nordic_svg(palette: dict, tile_size: int, complexity: str) -> str:
+def generate_knitwerk_svg(palette: dict, tile_size: int, complexity: str) -> str:
     T = tile_size
     bg = palette["background"]
     c1 = palette["primary"]
     c2 = palette["secondary"]
     c3 = palette["accent1"]
-    shapes = []
-    # EVEN aantal cellen dat de tegel exact opdeelt -> naadloze wrap
-    cells = {"low": 4, "medium": 6, "high": 8}.get(complexity, 6)
-    step = T / cells
-    arm = step * 0.38
-    w = step * 0.13
-    # Achtergrond-schaakbord (even cellen -> kleur sluit op rand aan)
-    for row in range(0, cells):
-        for col in range(0, cells):
-            x = col * step
-            y = row * step
-            fill = c1 if (row + col) % 2 == 0 else c2
-            shapes.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{step:.1f}" height="{step:.1f}" fill="{fill}"/>')
-    # Nordic kruis op elk rasterpunt incl. randen (col/row 0..cells, met wrap)
-    for row in range(0, cells + 1):
-        for col in range(0, cells + 1):
-            cx = col * step
-            cy = row * step
-            bg_kleur = c2 if ((row % cells) + (col % cells)) % 2 == 0 else c1
-            # Verticale arm van het kruis
-            shapes.append(f'<rect x="{cx-w:.1f}" y="{cy-arm:.1f}" width="{w*2:.1f}" height="{arm*2:.1f}" fill="{bg_kleur}"/>')
-            # Horizontale arm
-            shapes.append(f'<rect x="{cx-arm:.1f}" y="{cy-w:.1f}" width="{arm*2:.1f}" height="{w*2:.1f}" fill="{bg_kleur}"/>')
-            # Accent stipje
-            shapes.append(f'<rect x="{cx-w*0.6:.1f}" y="{cy-w*0.6:.1f}" width="{w*1.2:.1f}" height="{w*1.2:.1f}" fill="{c3}"/>')
-    return "\n".join(shapes)
-def generate_abstract_svg(palette: dict, tile_size: int, complexity: str) -> str:
-    T = tile_size
-    c1 = palette["primary"]
-    c2 = palette["secondary"]
-    c3 = palette["accent1"]
     c4 = palette["accent2"]
     shapes = []
-    cols = 8 if complexity == "high" else 5
-    step = T // cols
-    color_list = [c1, c2, c3, c4, palette["background"]]
-    for row in range(cols):
-        for col in range(cols):
-            x, y = col * step, row * step
-            fill = color_list[(row * 3 + col * 2) % len(color_list)]
-            if (row + col) % 3 == 0:
-                shapes.append(f'<rect x="{x}" y="{y}" width="{step}" height="{step}" fill="{fill}"/>')
-            elif (row + col) % 3 == 1:
-                shapes.append(f'<circle cx="{x + step//2}" cy="{y + step//2}" r="{step*0.48:.1f}" fill="{fill}"/>')
-            else:
-                pts = f"{x+step//2},{y} {x+step},{y+step} {x},{y+step}"
-                shapes.append(f'<polygon points="{pts}" fill="{fill}"/>')
+    # cells MOET T exact opdelen voor naadloze wrap (delers van 400: 20, 25).
+    cells = {"low": 5, "medium": 5, "high": 10}.get(complexity, 5)
+    step = T / cells
+    rows = cells
+    cmap = {1: c1, 2: c2, 3: c3, 4: c4}
+    shapes.append(f'<rect x="0" y="0" width="{T}" height="{T}" fill="{bg}"/>')
+    # Banden met periode 5 (deelt rows=25 exact -> naadloos verticaal).
+    #  sub 0: dikke kleurband (wisselt c1/c2 per blok)
+    #  sub 1: stippellijn c3
+    #  sub 2: diamant-centrum (c2) met armen (c4)
+    #  sub 3: diamant-buitenpunten (c2)
+    #  sub 4: achtergrond
+    grid = [[0] * cells for _ in range(rows)]
+    for r in range(rows):
+        block = r // 5
+        sub = r % 5
+        bandcol = 1 if block % 2 == 0 else 2
+        if sub == 0:
+            for c in range(cells):
+                grid[r][c] = bandcol
+        elif sub == 1:
+            for c in range(cells):
+                grid[r][c] = 3 if c % 2 == 0 else 0
+        elif sub == 2:
+            for c in range(cells):
+                if c % 5 == 2:
+                    grid[r][c] = 2
+                elif c % 5 in (1, 3):
+                    grid[r][c] = 4
+        elif sub == 3:
+            for c in range(cells):
+                if c % 5 in (0, 4):
+                    grid[r][c] = 2
+    for r in range(rows):
+        for c in range(cells):
+            col = grid[r][c]
+            if col == 0:
+                continue
+            fill = cmap[col]
+            x = c * step
+            y = r * step
+            cxm = x + step / 2
+            shapes.append(
+                f'<path d="M {x:.2f} {y:.2f} '
+                f'L {cxm:.2f} {y+step*0.55:.2f} '
+                f'L {x+step:.2f} {y:.2f} '
+                f'L {x+step:.2f} {y+step*0.45:.2f} '
+                f'L {cxm:.2f} {y+step:.2f} '
+                f'L {x:.2f} {y+step*0.45:.2f} Z" fill="{fill}"/>'
+            )
+    return "\n".join(shapes)
+
+
+def generate_bauhaus_svg(palette: dict, tile_size: int, complexity: str) -> str:
+    import random
+    T = tile_size
+    bg = palette["background"]
+    cols = [palette["primary"], palette["secondary"], palette["accent1"], palette["accent2"], bg]
+    shapes = []
+    grid = {"low": 3, "medium": 3, "high": 4}.get(complexity, 3)
+    cell = T / grid
+    rnd = random.Random(1234 + grid)
+    shapes.append(f'<rect x="0" y="0" width="{T}" height="{T}" fill="{bg}"/>')
+
+    def pick(exclude=None):
+        c = rnd.choice(cols)
+        while exclude is not None and c == exclude:
+            c = rnd.choice(cols)
+        return c
+
+    for row in range(grid):
+        for col in range(grid):
+            x = col * cell
+            y = row * cell
+            base = pick()
+            fg = pick(exclude=base)
+            shapes.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{cell:.1f}" height="{cell:.1f}" fill="{base}"/>')
+            motif = rnd.choice(["halfcircle", "triangle", "quarter", "rings", "stripes", "circle", "diag"])
+            cx = x + cell / 2
+            cy = y + cell / 2
+            if motif == "halfcircle":
+                r = cell / 2
+                orient = rnd.choice(["t", "b", "l", "rr"])
+                if orient == "t":
+                    d = f'M {x:.1f} {y+r:.1f} A {r:.1f} {r:.1f} 0 0 1 {x+cell:.1f} {y+r:.1f} Z'
+                elif orient == "b":
+                    d = f'M {x:.1f} {y+r:.1f} A {r:.1f} {r:.1f} 0 0 0 {x+cell:.1f} {y+r:.1f} Z'
+                elif orient == "l":
+                    d = f'M {x+r:.1f} {y:.1f} A {r:.1f} {r:.1f} 0 0 0 {x+r:.1f} {y+cell:.1f} Z'
+                else:
+                    d = f'M {x+r:.1f} {y:.1f} A {r:.1f} {r:.1f} 0 0 1 {x+r:.1f} {y+cell:.1f} Z'
+                shapes.append(f'<path d="{d}" fill="{fg}"/>')
+            elif motif == "triangle":
+                orient = rnd.choice(["u", "d", "l", "rr"])
+                if orient == "u":
+                    pts = f'{cx:.1f},{y:.1f} {x+cell:.1f},{y+cell:.1f} {x:.1f},{y+cell:.1f}'
+                elif orient == "d":
+                    pts = f'{x:.1f},{y:.1f} {x+cell:.1f},{y:.1f} {cx:.1f},{y+cell:.1f}'
+                elif orient == "l":
+                    pts = f'{x:.1f},{y:.1f} {x+cell:.1f},{cy:.1f} {x:.1f},{y+cell:.1f}'
+                else:
+                    pts = f'{x+cell:.1f},{y:.1f} {x+cell:.1f},{y+cell:.1f} {x:.1f},{cy:.1f}'
+                shapes.append(f'<polygon points="{pts}" fill="{fg}"/>')
+            elif motif == "quarter":
+                corner = rnd.choice(["tl", "tr", "bl", "br"])
+                r = cell
+                if corner == "tl":
+                    d = f'M {x:.1f} {y:.1f} L {x+r:.1f} {y:.1f} A {r:.1f} {r:.1f} 0 0 1 {x:.1f} {y+r:.1f} Z'
+                elif corner == "tr":
+                    d = f'M {x+cell:.1f} {y:.1f} L {x+cell:.1f} {y+r:.1f} A {r:.1f} {r:.1f} 0 0 1 {x+cell-r:.1f} {y:.1f} Z'
+                elif corner == "bl":
+                    d = f'M {x:.1f} {y+cell:.1f} L {x:.1f} {y+cell-r:.1f} A {r:.1f} {r:.1f} 0 0 1 {x+r:.1f} {y+cell:.1f} Z'
+                else:
+                    d = f'M {x+cell:.1f} {y+cell:.1f} L {x+cell-r:.1f} {y+cell:.1f} A {r:.1f} {r:.1f} 0 0 1 {x+cell:.1f} {y+cell-r:.1f} Z'
+                shapes.append(f'<path d="{d}" fill="{fg}"/>')
+            elif motif == "rings":
+                fg2 = pick(exclude=base)
+                n = 5
+                for i in range(n, 0, -1):
+                    rr = (cell / 2) * (i / n) * 0.9
+                    ringfill = fg if i % 2 == 0 else fg2
+                    shapes.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{rr:.1f}" fill="{ringfill}"/>')
+            elif motif == "stripes":
+                n = 5
+                sh = cell / (n * 2)
+                for i in range(n):
+                    yy = y + i * 2 * sh
+                    shapes.append(f'<rect x="{x:.1f}" y="{yy:.1f}" width="{cell:.1f}" height="{sh:.1f}" fill="{fg}"/>')
+            elif motif == "circle":
+                shapes.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{cell*0.40:.1f}" fill="{fg}"/>')
+            elif motif == "diag":
+                if rnd.random() < 0.5:
+                    pts = f'{x:.1f},{y:.1f} {x+cell:.1f},{y:.1f} {x:.1f},{y+cell:.1f}'
+                else:
+                    pts = f'{x+cell:.1f},{y:.1f} {x+cell:.1f},{y+cell:.1f} {x:.1f},{y+cell:.1f}'
+                shapes.append(f'<polygon points="{pts}" fill="{fg}"/>')
     return "\n".join(shapes)
 
 
 STYLE_GENERATORS = {
+    "bauhaus": generate_bauhaus_svg,
     "geometric": generate_geometric_svg,
     "medallion": generate_medallion_svg,
     "floral": generate_floral_svg,
     "botanical": generate_floral_svg,
-    "nordic": generate_nordic_svg,
+    "knitwerk": generate_knitwerk_svg,
     "persian": generate_medallion_svg,
     "classic": generate_medallion_svg,
-    "abstract": generate_abstract_svg,
     "strepen": generate_strepen_svg,
     "mozaiek": generate_mozaiek_svg,
     "chevron": generate_chevron_svg,
@@ -353,7 +444,11 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     """Bouw de SVG voor één basistegel."""
     style = analysis.get("style", "geometric")
     p = analysis.get("_prompt", "")
-    if any(w in p for w in ["streep", "strepen", "stripe"]):
+    if style == "bauhaus" or "bauhaus" in p:
+        style = "bauhaus"
+    elif style == "knitwerk" or any(w in p for w in ['knitwerk', 'knit', 'gebreid', 'breiwerk', 'fair isle', 'noorse trui', 'nordic', 'scandinavisch', 'noors', 'sneeuwvlok']):
+        style = "knitwerk"
+    elif any(w in p for w in ["streep", "strepen", "stripe"]):
         style = "strepen"
     elif any(w in p for w in ["mozaiek", "pixel", "blokje"]):
         style = "mozaiek"
@@ -369,8 +464,8 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "hexagon"
     elif any(w in p for w in ["ogee", "schub", "dakpan"]):
         style = "ogee"
-    elif any(w in p for w in ["nordic", "scandinavisch", "noors", "kruis", "sneeuwvlok"]):
-        style = "nordic"
+    elif any(w in p for w in ["nordic", "scandinavisch", "noors", "kruis", "sneeuwvlok", "knitwerk", "knit", "gebreid", "breiwerk"]):
+        style = "knitwerk"
     elif any(w in p for w in ["terrazzo", "steensnipp"]):
         style = "terrazzo"
     elif any(w in p for w in ["vrije vorm", "organisch", "vloeiend"]):
@@ -378,7 +473,11 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
 
     # Directe keyword override op basis van prompt
     prompt_lower = analysis.get("description_nl", "").lower()
-    if any(w in prompt_lower for w in ["streep", "strepen", "stripe", "verticale lijn"]):
+    if style == "bauhaus":
+        pass
+    elif style == "knitwerk":
+        pass
+    elif any(w in prompt_lower for w in ["streep", "strepen", "stripe", "verticale lijn"]):
         style = "strepen"
     elif any(w in prompt_lower for w in ["mozaiek", "pixel", "blokje"]):
         style = "mozaiek"
@@ -394,8 +493,8 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "hexagon"
     elif any(w in prompt_lower for w in ["ogee", "schub", "dakpan"]):
         style = "ogee"
-    elif any(w in prompt_lower for w in ["nordic", "scandinavisch", "noors", "kruis", "ruitpatroon"]):
-        style = "nordic"
+    elif any(w in prompt_lower for w in ["nordic", "scandinavisch", "noors", "knitwerk", "knit", "gebreid", "breiwerk", "fair isle"]):
+        style = "knitwerk"
     elif any(w in prompt_lower for w in ["terrazzo", "steensnipp"]):
         style = "terrazzo"
     elif any(w in prompt_lower for w in ["vrije vorm", "organisch", "vloeiend"]):
@@ -427,7 +526,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     if n < 1:
         n = 1
     g = TEGEL // n  # interne grootte waarop de generator tekent
-    extra_styles = ["strepen","mozaiek","chevron","chevron_bold","houndstooth","urban_plaid","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex"]
+    extra_styles = ["bauhaus","knitwerk","strepen","mozaiek","chevron","chevron_bold","houndstooth","urban_plaid","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
     if style in extra_styles:
@@ -565,6 +664,8 @@ def api_generate():
     try:
         # Stap 2: Genereer basistegel SVG
         p = prompt.lower()
+        if 'bauhaus' in p:
+            analysis['style'] = 'bauhaus'
         if 'bamboe' in p or 'bamboo' in p:
             analysis['style'] = 'bamboe'
         elif any(w in p for w in ['botanisch', 'bloem', 'blad', 'botanical', 'plant', 'flora']):
@@ -581,6 +682,8 @@ def api_generate():
             analysis['style'] = 'chevron_bold'
         elif analysis.get('style') == 'houndstooth' or any(w in p for w in ['houndstooth', 'hanenpoot', 'pied-de-poule', 'pied de poule', 'pita']):
             analysis['style'] = 'houndstooth'
+        elif any(w in p for w in ['knitwerk', 'knit', 'gebreid', 'breiwerk', 'fair isle', 'noorse trui', 'nordic', 'scandinavisch', 'noors', 'sneeuwvlok']):
+            analysis['style'] = 'knitwerk'
         elif analysis.get('style') == 'urban_plaid' or any(w in p for w in ['urban plaid', 'plaid', 'tartan', 'ruit', 'schots']):
             analysis['style'] = 'urban_plaid'
         elif any(w in p for w in ['chevron', 'zigzag']):
@@ -589,8 +692,6 @@ def api_generate():
             analysis['style'] = 'hexagon'
         elif any(w in p for w in ['ogee', 'schub', 'dakpan']):
             analysis['style'] = 'ogee'
-        elif any(w in p for w in ['nordic', 'scandinavisch', 'noors', 'kruis', 'sneeuwvlok']):
-            analysis['style'] = 'nordic'
         elif any(w in p for w in ['batik', 'mirror', 'spiegel', 'tie-dye', 'ikat']):
             analysis['style'] = 'batik'
         elif any(w in p for w in ['vlechtwerk', 'vlecht', 'gevlochten', 'basketweave']):
@@ -622,6 +723,7 @@ def api_generate():
             (['art deco', 'jaren 20', 'jaren twintig'], 'art deco'),
             (['schub', 'dakpan', 'ogee'], 'schubben'),
             (['sterren'], 'sterren'),
+            (['bauhaus'], 'bauhaus'),
             (['cirkel'], 'cirkels'),
             (['ruiten', 'diamant'], 'ruiten'),
             (['terrazzo'], 'terrazzo'),
@@ -631,15 +733,14 @@ def api_generate():
             (['dots', 'stippen', 'polka'], 'dots'),
             (['chevronbold', 'chevron bold', 'chevron blok'], 'chevron_bold'),
             (['houndstooth', 'hanenpoot', 'pied-de-poule', 'pied de poule', 'pita'], 'houndstooth'),
+            (['knitwerk', 'knit', 'gebreid', 'breiwerk', 'fair isle', 'noorse trui', 'nordic', 'scandinavisch', 'noors'], 'knitwerk'),
             (['urban plaid', 'plaid', 'tartan', 'ruit', 'schots'], 'urban_plaid'),
             (['chevron', 'zigzag'], 'chevron'),
             (['hexagon', 'honingraat', 'zeshoek'], 'hexagon'),
-            (['nordic', 'scandinavisch', 'noors'], 'nordic'),
             (['vrije vorm', 'organisch', 'vloeiend'], 'vrije vormen'),
             (['medaillon', 'medallion'], 'medaillon'),
             (['perzisch', 'persian'], 'perzisch'),
             (['botanisch', 'bloem', 'botanical'], 'botanisch'),
-            (['abstract'], 'abstract'),
         ]
         weergave_stijl = analysis.get('style', '')
         for _sleutels, _naam in label_map:
