@@ -2,6 +2,23 @@
 
 let currentTileSvg = null;
 let currentRepeatSvg = null;
+
+// Zet een SVG (base64) om naar een lage-resolutie PNG op een canvas en toont
+// die als bron van het preview-element. Zo komt de schaalbare SVG niet als
+// downloadbare afbeelding in beeld.
+function svgNaarPngPreview(svgB64, elementId, breedte) {
+  try {
+    const doel = document.getElementById(elementId);
+    if (doel) {
+      // SVG rechtstreeks tonen (geen canvas-tussenstap; voorkomt vervorming
+      // bij SVG's met alleen viewBox). Cachebuster via leegmaken + nieuwe src.
+      doel.src = '';
+      doel.src = 'data:image/svg+xml;base64,' + svgB64;
+    }
+  } catch (e) {
+    console.log('Preview-render fout:', e);
+  }
+}
 let currentDessinRef = null;
 let currentInfo = null;
 let activeTab = 'repeat';
@@ -56,7 +73,7 @@ async function generate() {
   const apiKey = document.getElementById('apiKey').value.trim();
   const prompt = document.getElementById('prompt').value.trim();
   const tileCm = document.getElementById('tileCm').value;
-  const repeatType = document.getElementById('repeatType').value;
+  const repeatType = 'full';
   const dpi = document.getElementById('dpi').value;
 
   if (!apiKey) return setStatus('Vul eerst uw API-sleutel in.', 'error');
@@ -73,8 +90,9 @@ async function generate() {
   try {
     const response = await fetch('/api/generate', {
       method: 'POST',
+      cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, api_key: apiKey, tile_cm: tileCm, repeat_type: repeatType, dpi, aangepast_palet: (document.getElementById('gebruikKleuren')?.checked ? { background: document.getElementById('kleur0')?.value, primary: document.getElementById('kleur1')?.value, secondary: document.getElementById('kleur2')?.value, accent1: document.getElementById('kleur3')?.value, accent2: document.getElementById('kleur4')?.value } : null) })
+      body: JSON.stringify({ prompt, api_key: apiKey, tile_cm: tileCm, repeat_type: repeatType, dpi, motief_schaal: (parseInt(document.getElementById('motiefSchaal')?.value) || 100), aangepast_palet: (document.getElementById('gebruikKleuren')?.checked ? { background: document.getElementById('kleur0')?.value, primary: document.getElementById('kleur1')?.value, secondary: document.getElementById('kleur2')?.value, accent1: document.getElementById('kleur3')?.value, accent2: document.getElementById('kleur4')?.value } : null) })
     });
 
     const data = await response.json();
@@ -90,11 +108,9 @@ async function generate() {
     currentRepeatSvg = data.repeat_svg_b64;
     currentInfo = data.info;
 
-    // Preview tonen
-    const tileUrl = 'data:image/svg+xml;base64,' + data.tile_svg_b64;
-    const repeatUrl = 'data:image/svg+xml;base64,' + data.repeat_svg_b64;
-    document.getElementById('previewTile').src = tileUrl;
-    document.getElementById('previewRepeat').src = repeatUrl;
+    // Preview tonen als lage-resolutie PNG (SVG niet zichtbaar/downloadbaar)
+    svgNaarPngPreview(data.tile_svg_b64, 'previewTile', 350);
+    svgNaarPngPreview(data.repeat_svg_b64, 'previewRepeat', 700);
     document.getElementById('previewTile').style.display = activeTab === 'tile' ? 'block' : 'none';
     document.getElementById('previewRepeat').style.display = activeTab === 'repeat' ? 'block' : 'none';
     document.getElementById('emptyState').style.display = 'none';
@@ -157,7 +173,7 @@ async function generate() {
   const refEl = document.getElementById('dessinRef');
   if (refEl) refEl.textContent = currentDessinRef;
 
-    setStatus('✓ Dessin gegenereerd! Klaar voor export.', 'success');
+    setStatus('✓ Alle dessins zijn vectorgebaseerd. Deze preview is gemaakt in een lage PNG-resolutie; bij bestelling wordt het originele, schaalbare vectorbestand naar DCOD doorgestuurd voor de productie van uw tapijt.', 'success');
 
   } catch (err) {
     setStatus('Verbindingsfout. Is de server actief?', 'error');
@@ -178,7 +194,7 @@ async function exportFile(format, type) {
   const svgB64 = type === 'tile' ? currentTileSvg : currentRepeatSvg;
   const cm = document.getElementById('tileCm').value;
   const dpi = document.getElementById('dpi').value;
-  const repeatType = document.getElementById('repeatType').value;
+  const repeatType = 'full';
   const ts = Date.now();
   const filename = `dessin_${type}_${cm}cm_${dpi}dpi_${ts}.${format}`;
 
@@ -258,7 +274,7 @@ async function verstuurBestelling() {
   const bedrijf = document.getElementById('bestelBedrijf')?.value.trim() || '';
   const dessin_info = document.getElementById('descText')?.textContent || '';
   const dessin_ref = currentDessinRef || 'Onbekend';
-  const repeat_type = document.getElementById('repeatType')?.options[document.getElementById('repeatType')?.selectedIndex]?.text || '';
+  const repeat_type = 'Full repeat';
   const tegel_maat = document.getElementById('tileCm')?.options[document.getElementById('tileCm')?.selectedIndex]?.text || '';
   const resolutie = document.getElementById('dpi')?.options[document.getElementById('dpi')?.selectedIndex]?.text || '';
   const datum = new Date().toLocaleDateString('nl-NL', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
@@ -293,7 +309,7 @@ async function verstuurBestelling() {
   const res = await fetch('/api/bestelling', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ naam, email, telefoon, bedrijf, wensen, dessin_info, dessin_ref, repeat_type, tegel_maat, resolutie, datum, img_b64, product, afmeting: breedte && lengte ? breedte + ' x ' + lengte + ' cm (' + m2 + ')' : 'Niet opgegeven', staaltje, straat, postcode, plaats, land })
+      body: JSON.stringify({ kleuren: ([0,1,2,3,4].map(function(i){var lbls=['achtergrond','primair','secondair','accent 1','accent 2'];var hx=(document.getElementById('kleur'+i+'hex')||document.getElementById('kleur'+i)||{}).value||'';var r=(document.getElementById('kleur'+i+'r')||{}).value||'';var g=(document.getElementById('kleur'+i+'g')||{}).value||'';var b=(document.getElementById('kleur'+i+'b')||{}).value||'';return {label:lbls[i],hex:hx,r:r,g:g,b:b};})), naam, email, telefoon, bedrijf, wensen, dessin_info, dessin_ref, repeat_type, tegel_maat, resolutie, datum, img_b64, tile_svg_b64: currentTileSvg, repeat_svg_b64: currentRepeatSvg, product, afmeting: breedte && lengte ? breedte + ' x ' + lengte + ' cm (' + m2 + ')' : 'Niet opgegeven', staaltje, straat, postcode, plaats, land })
     });
     const data = await res.json();
     if (data.success) {
@@ -364,6 +380,17 @@ function laadContactGegevens() {
   const naam = localStorage.getItem('bestel_naam') || '';
   const email = localStorage.getItem('bestel_email') || '';
   const telefoon = localStorage.getItem('bestel_telefoon') || '';
+  const bedrijf = localStorage.getItem('bestel_bedrijf') || '';
+  const straat = localStorage.getItem('bestel_straat') || '';
+  const postcode = localStorage.getItem('bestel_postcode') || '';
+  const plaats = localStorage.getItem('bestel_plaats') || '';
+  if (naam) document.getElementById('bestelNaam').value = naam;
+  if (email) document.getElementById('bestelEmail').value = email;
+  if (telefoon) document.getElementById('bestelTelefoon').value = telefoon;
+  if (bedrijf) document.getElementById('bestelBedrijf').value = bedrijf;
+  if (straat) document.getElementById('bestelStraat').value = straat;
+  if (postcode) document.getElementById('bestelPostcode').value = postcode;
+  if (plaats) document.getElementById('bestelPlaats').value = plaats;
   if (document.getElementById('bestelNaam')) document.getElementById('bestelNaam').value = naam;
   if (document.getElementById('bestelEmail')) document.getElementById('bestelEmail').value = email;
   if (document.getElementById('bestelTelefoon')) document.getElementById('bestelTelefoon').value = telefoon;
@@ -373,6 +400,14 @@ function slaContactGegevensOp(naam, email, telefoon) {
   localStorage.setItem('bestel_naam', naam);
   localStorage.setItem('bestel_email', email);
   localStorage.setItem('bestel_telefoon', telefoon);
+  const b = document.getElementById('bestelBedrijf')?.value || '';
+  const s = document.getElementById('bestelStraat')?.value || '';
+  const p = document.getElementById('bestelPostcode')?.value || '';
+  const pl = document.getElementById('bestelPlaats')?.value || '';
+  if (b) localStorage.setItem('bestel_bedrijf', b);
+  if (s) localStorage.setItem('bestel_straat', s);
+  if (p) localStorage.setItem('bestel_postcode', p);
+  if (pl) localStorage.setItem('bestel_plaats', pl);
 }
 
 // Staaltje tonen/verbergen
@@ -394,3 +429,37 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('bestelBreedte')?.addEventListener('input', berekenM2);
   document.getElementById('bestelLengte')?.addEventListener('input', berekenM2);
 });
+
+
+/* ---- Floorvisualizer: Bekijk in ruimte ---- */
+(function(){
+  var SRC = 600;
+  /* vloer-hoekpunten als fractie van de scene (TL,TR,BL,BR) */
+  var FR = [[0.150,0.547],[1.02,0.547],[-0.230,1.0],[1.107,1.0]];
+  function adj(m){return [m[4]*m[8]-m[5]*m[7],m[2]*m[7]-m[1]*m[8],m[1]*m[5]-m[2]*m[4],m[5]*m[6]-m[3]*m[8],m[0]*m[8]-m[2]*m[6],m[2]*m[3]-m[0]*m[5],m[3]*m[7]-m[4]*m[6],m[1]*m[6]-m[0]*m[7],m[0]*m[4]-m[1]*m[3]];}
+  function mmm(a,b){var c=[];for(var i=0;i<3;i++)for(var j=0;j<3;j++){var s=0;for(var k=0;k<3;k++)s+=a[3*i+k]*b[3*k+j];c[3*i+j]=s;}return c;}
+  function mmv(m,v){return [m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]*v[2],m[6]*v[0]+m[7]*v[1]+m[8]*v[2]];}
+  function b2p(x1,y1,x2,y2,x3,y3,x4,y4){var m=[x1,x2,x3,y1,y2,y3,1,1,1];var v=mmv(adj(m),[x4,y4,1]);return mmm(m,[v[0],0,0,0,v[1],0,0,0,v[2]]);}
+  function ruimteLayout(){
+    var scene=document.getElementById('ruimteScene'); if(!scene) return;
+    var W=scene.clientWidth, H=Math.round(W*1024/1536); scene.style.height=H+'px';
+    var d=FR.map(function(p){return {x:p[0]*W,y:p[1]*H};});
+    var s=b2p(0,0,SRC,0,0,SRC,SRC,SRC);
+    var dd=b2p(d[0].x,d[0].y,d[1].x,d[1].y,d[2].x,d[2].y,d[3].x,d[3].y);
+    var t=mmm(dd,adj(s));
+    for(var i=0;i<9;i++) t[i]=t[i]/t[8];
+    var m=[t[0],t[3],0,t[6],t[1],t[4],0,t[7],0,0,1,0,t[2],t[5],0,t[8]];
+    var c=document.getElementById('ruimteCarpet');
+    c.style.transform='matrix3d('+m.join(',')+')'; c.style.transformOrigin='0 0';
+  }
+  function ruimteScale(){var s=+document.getElementById('ruimteScale').value;document.getElementById('ruimteCarpet').style.backgroundSize=s+'px '+s+'px';}
+  window.openVisualizer=function(){
+    if(typeof currentTileSvg==='undefined' || !currentTileSvg){ alert('Genereer eerst een dessin.'); return; }
+    document.getElementById('ruimteCarpet').style.backgroundImage="url('data:image/svg+xml;base64,"+currentTileSvg+"')";
+    ruimteScale();
+    document.getElementById('ruimteModal').style.display='flex';
+    setTimeout(ruimteLayout,40);
+  };
+  document.addEventListener('input',function(e){ if(e.target && e.target.id==='ruimteScale') ruimteScale(); });
+  window.addEventListener('resize',function(){ var md=document.getElementById('ruimteModal'); if(md && md.style.display==='flex') ruimteLayout(); });
+})();
