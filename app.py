@@ -35,7 +35,7 @@ def analyse_prompt(prompt: str, api_key: str) -> dict:
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=400,
+        max_tokens=600,
         messages=[{
             "role": "user",
             "content": f"""Je bent een expert in tapijt- en textielontwerp.
@@ -53,8 +53,14 @@ Analyseer de volgende dessin-prompt en geef ALLEEN een JSON-object terug (geen u
   "complexity": "low|medium|high",
   "motif_size": "small|medium|large",
   "shapes": ["circle|square|triangle|diamond|hexagon|star|cross|leaf|flower"],
-  "description_nl": "Korte beschrijving van het dessin in het Nederlands"
+  "description_nl": "Korte feitelijke beschrijving van het dessin in het Nederlands",
+  "sfeer_nl": ["woord1", "woord2", "woord3"],
+  "geschikt_voor_nl": ["ruimte1", "ruimte2", "ruimte3"],
+  "ontwerpvisie_nl": "Een of twee korte, verkopende zinnen over de inspiratie en het gevoel van dit dessin (bv. waarop het is geinspireerd en welke beleving het geeft). Niet de vormen beschrijven."
 }}
+
+Voor sfeer_nl: drie korte sfeerwoorden (bv. Rustgevend, Organisch, Architectonisch).
+Voor geschikt_voor_nl: drie passende commerciele toepassingen (bv. Hotel, Kantoor, Zorg, Entree, Retail, Bibliotheek, Onderwijs).
 
 Prompt: "{prompt}"
 
@@ -475,8 +481,9 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     elif any(w in p for w in ["vrije vorm", "organisch", "vloeiend"]):
         style = "vrije_vormen"
 
-    # Directe keyword override op basis van prompt
-    prompt_lower = analysis.get("description_nl", "").lower()
+    # Directe keyword override op basis van de ORIGINELE PROMPT (niet description_nl,
+    # want de AI-omschrijving varieert per generatie en kan de juiste stijl overschrijven)
+    prompt_lower = analysis.get("_prompt", "").lower()
     if style == "bauhaus":
         pass
     elif style == "knitwerk":
@@ -710,6 +717,12 @@ def api_generate():
             analysis['style'] = 'terrazzo'
         elif any(w in p for w in ['vrije vorm', 'organisch', 'vloeiend']):
             analysis['style'] = 'vrije_vormen'
+        # Cirkels-knop ('Alleen cirkels, strak en minimalistisch'): forceer echte cirkels,
+        # ongeacht welke vormen de AI teruggeeft. Specifiek op 'alleen cirkel' zodat
+        # bv. Bauhaus ('halve cirkels') niet wordt geraakt.
+        if 'alleen cirkel' in p:
+            analysis['style'] = 'geometric'
+            analysis['shapes'] = ['circle']
         tile_svg = build_tile_svg(analysis, tile_size=400, motief_schaal=motief_schaal)
 
         # Stap 3: Bouw all-over repeat
@@ -762,6 +775,9 @@ def api_generate():
             "info": {
                 "style": weergave_stijl,
                 "description": analysis.get("description_nl", ""),
+                "sfeer": analysis.get("sfeer_nl", []),
+                "geschikt_voor": analysis.get("geschikt_voor_nl", []),
+                "ontwerpvisie": analysis.get("ontwerpvisie_nl", ""),
                 "complexity": analysis.get("complexity", ""),
                 "dpi": dpi,
                 "tile_px": px_per_tile,

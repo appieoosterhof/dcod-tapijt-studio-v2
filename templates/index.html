@@ -148,6 +148,13 @@ textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(
 .description-box{background:var(--card);border:1px solid var(--line);border-left:2px solid var(--green);border-radius:0 var(--radius) var(--radius) 0;padding:14px 16px;}
 .description-box .eyebrow{display:block;margin-bottom:7px;}
 .description-box #descText{font-size:13.5px;color:var(--text);line-height:1.65;}
+.wb-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px;margin-top:4px;}
+.wb-visie{grid-column:1 / -1;}
+.wb-label{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);font-weight:700;margin-bottom:7px;}
+.wb-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.wb-chips span{font-size:12.5px;padding:4px 11px;border-radius:999px;background:rgba(167,197,142,.1);color:var(--text-strong);border:1px solid var(--line);}
+.wb-text{font-size:13.5px;color:var(--text);line-height:1.65;}
+@media(max-width:560px){.wb-grid{grid-template-columns:1fr;}}
 .desc-icon{display:none;}
 #refRow{font-size:12px;color:var(--muted);text-align:right;}
 #dessinRef{font-weight:700;color:var(--green);font-family:monospace;}
@@ -422,8 +429,12 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);padding:18px;border
 
     <div class="description-box" id="descBox" style="display:none">
       <span class="eyebrow">Waarom dit ontwerp werkt</span>
-      <span class="desc-icon">◈</span>
-      <span id="descText">—</span>
+      <div class="wb-grid">
+        <div class="wb-block"><div class="wb-label">Sfeer</div><div class="wb-chips" id="wbSfeer"></div></div>
+        <div class="wb-block"><div class="wb-label">Geschikt voor</div><div class="wb-chips" id="wbGeschikt"></div></div>
+        <div class="wb-block wb-visie"><div class="wb-label">Ontwerpvisie</div><div class="wb-text" id="wbVisie">—</div></div>
+      </div>
+      <span id="descText" style="display:none">—</span>
     </div>
 
     <div class="palette-row" id="paletteRow" style="display:none">
@@ -436,7 +447,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);padding:18px;border
     </div>
 
     <div id="bestelRow" style="display:none">
-      <button class="bestel-row-btn" onclick="document.getElementById('bestelModal').style.display='flex'">Realiseer als printtapijt</button>
+      <button class="bestel-row-btn" onclick="document.getElementById('bestelModal').style.display='flex'">Maak van dit ontwerp een projectvoorstel</button>
       <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:8px;">Vrijblijvende aanvraag — wij nemen eerst contact met u op voordat er iets definitief wordt besteld.</p>
     </div>
 
@@ -526,7 +537,8 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);padding:18px;border
   </div>
 </div>
 
-<script src="/static/js/app.js?v=20260613_140000"></script>
+<select id="repeatType" style="display:none"><option value="full" selected>full</option></select>
+<script src="/static/js/app.js?v=20260613_164500"></script>
 <script>
 (function(){
   const PH=["Luxe hotellobby met organische hoogtelijnen in goud en mosgroen",
@@ -576,6 +588,8 @@ function applyTheme(name,btn){
   const T1=document.getElementById('exThumb1'); if(T1)T1.innerHTML=nordic(["#D5E0DF","#9FB6A4","#5D7064","#2b3a33","#16201c"]);
   const T2=document.getElementById('exThumb2'); if(T2)T2.innerHTML=deco(["#E3D29A","#C6A24A","#8A6A2E","#1c1c1c","#0c0c0c"]);
 })();
+/* De blokken Sfeer / Geschikt voor / Ontwerpvisie worden nu door app.js
+   bij elke generatie gevuld (zie generate-functie). Geen observer meer nodig. */
 </script>
 </body>
 </html>
