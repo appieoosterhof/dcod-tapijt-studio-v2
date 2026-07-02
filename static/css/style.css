@@ -3,29 +3,35 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #F7F4EF;
-  --surface: #FFFFFF;
-  --border: #E2DDD4;
-  --border-strong: #C8C0B4;
-  --text: #1A1714;
-  --text-muted: #6B6560;
-  --text-hint: #9E9890;
-  --accent: #1A1714;
-  --accent-hover: #3A3530;
-  --green: #2D6A2D;
-  --green-bg: #E6F3E6;
-  --blue: #1A3A8F;
-  --blue-bg: #E6EEFF;
-  --chip-bg: #F0EDE8;
-  --chip-hover: #E2DDD4;
+  /* DCOD officiele kleuren */
+  --dcod-dark: #003614;
+  --dcod-light: #A7C58E;
+  --dcod-roze: #C38D96;
+  --dcod-grijsgroen: #D5E0DF;
+
+  --bg: #06280F;            /* donkere inzet (velden, canvas) */
+  --surface: #0A3A1D;       /* paneel */
+  --border: #245C34;        /* zichtbare paneelrand */
+  --border-strong: #3A7D4E; /* focus/hover rand */
+  --text: #E6EDE9;
+  --text-muted: #9FB6A4;
+  --text-hint: #7E9786;
+  --accent: #A7C58E;        /* lichtgroen — knoppen & actieve tab */
+  --accent-hover: #B6D09E;
+  --green: #A7C58E;
+  --green-bg: rgba(167,197,142,0.18);
+  --blue: #9BB29F;
+  --blue-bg: rgba(167,197,142,0.10);
+  --chip-bg: rgba(167,197,142,0.07);
+  --chip-hover: rgba(167,197,142,0.16);
   --radius: 10px;
   --radius-sm: 6px;
-  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 8px 24px rgba(0,16,7,0.35);
 }
 
 body {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  background: var(--bg);
+  font-family: 'Avenir Next','Avenir','Nunito Sans',system-ui,sans-serif;
+  background: radial-gradient(135% 95% at 72% -10%, #094023 0%, #00250F 55%, #001607 100%) fixed;
   color: var(--text);
   min-height: 100vh;
   display: flex;
@@ -51,14 +57,14 @@ header {
   color: #fff;
   border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Avenir Next','Avenir','Nunito Sans',sans-serif;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 1px;
   flex-shrink: 0;
 }
 h1 {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Avenir Next','Avenir','Nunito Sans',sans-serif;
   font-size: 22px;
   font-weight: 600;
   letter-spacing: 0.3px;
@@ -94,7 +100,7 @@ main {
   box-shadow: var(--shadow);
 }
 .card h2 {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Avenir Next','Avenir','Nunito Sans',sans-serif;
   font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
@@ -155,7 +161,7 @@ main {
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Avenir Next','Avenir','Nunito Sans',sans-serif;
 }
 .chip:hover { background: var(--chip-hover); color: var(--text); border-color: var(--border-strong); }
 
@@ -165,7 +171,7 @@ textarea {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Avenir Next','Avenir','Nunito Sans',sans-serif;
   line-height: 1.6;
   background: var(--bg);
   color: var(--text);
@@ -191,7 +197,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); }
   font-size: 13px;
   background: var(--bg);
   color: var(--text);
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Avenir Next','Avenir','Nunito Sans',sans-serif;
 }
 .field select:focus { outline: none; }
 
@@ -200,11 +206,11 @@ textarea:focus { outline: none; border-color: var(--border-strong); }
   width: 100%;
   padding: 13px;
   background: var(--accent);
-  color: #fff;
+  color: var(--dcod-dark);
   border: none;
   border-radius: var(--radius);
   font-size: 15px;
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Avenir Next','Avenir','Nunito Sans',sans-serif;
   font-weight: 500;
   letter-spacing: 0.5px;
   cursor: pointer;
@@ -253,7 +259,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); }
 .tab {
   padding: 6px 14px;
   font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Avenir Next','Avenir','Nunito Sans',sans-serif;
   background: var(--chip-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -261,7 +267,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); }
   color: var(--text-muted);
   transition: all 0.15s;
 }
-.tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tab.active { background: var(--accent); color: var(--dcod-dark); border-color: var(--accent); }
 .tab:not(.active):hover { background: var(--chip-hover); }
 
 .badges { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -273,7 +279,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); }
 }
 .badge.green { background: var(--green-bg); color: var(--green); }
 .badge.blue { background: var(--blue-bg); color: var(--blue); }
-.badge.gray { background: var(--chip-bg); color: var(--text-muted); }
+.badge.gray { background: rgba(195,141,150,0.20); color: #E0A7B0; }
 
 /* Canvas */
 .canvas-container {
@@ -341,7 +347,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); }
 .swatch {
   width: 24px; height: 24px;
   border-radius: 50%;
-  border: 2px solid rgba(0,0,0,0.08);
+  border: 2px solid rgba(255,255,255,0.18);
   cursor: default;
   transition: transform 0.15s;
 }
@@ -363,7 +369,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Avenir Next','Avenir','Nunito Sans',sans-serif;
   cursor: pointer;
   color: var(--text);
   display: flex;
@@ -373,7 +379,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); }
   transition: all 0.15s;
 }
 .btn-export:hover { background: var(--chip-hover); border-color: var(--border-strong); }
-.btn-export.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-export.btn-primary { background: var(--accent); color: var(--dcod-dark); border-color: var(--accent); }
 .btn-export.btn-primary:hover { background: var(--accent-hover); }
 
 /* Footer */
@@ -390,3 +396,12 @@ footer {
   main { grid-template-columns: 1fr; padding: 1rem; }
   .info-cards { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* === DCOD: kleurkiezer-velden donker (alleen binnen het kleurenpaneel) === */
+#card-kleuren input[type="text"],
+#card-kleuren input[type="number"] {
+  background: var(--bg);
+  color: var(--text);
+}
+#card-kleuren input[type="text"]:focus,
+#card-kleuren input[type="number"]:focus { outline: none; border-color: var(--border-strong); }

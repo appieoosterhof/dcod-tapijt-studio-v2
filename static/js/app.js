@@ -463,3 +463,39 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('input',function(e){ if(e.target && e.target.id==='ruimteScale') ruimteScale(); });
   window.addEventListener('resize',function(){ var md=document.getElementById('ruimteModal'); if(md && md.style.display==='flex') ruimteLayout(); });
 })();
+
+// Japandi-collectie: submenu tonen na klik op Japandi
+function showJapandiSub(){
+  var el=document.getElementById('japandiSub');
+  if(el){ el.style.display='flex'; }
+}
+
+// Art Deco-collectie: submenu tonen na klik op Art Deco
+function showArtdecoSub(){
+  var el=document.getElementById('artdecoSub');
+  if(el){ el.style.display='flex'; }
+}
+
+// Etalage: genereer een voorbeelddessin direct (zonder AI/sleutel)
+async function genereerVoorbeeld(style, prompt, palet){
+  try{
+    var pin=document.getElementById('prompt'); if(pin) pin.value=prompt;
+    if(typeof setLoading==='function') setLoading(true);
+    if(typeof setStatus==='function') setStatus('Voorbeeld genereren...','');
+    var tileCm=(document.getElementById('tileCm')||{}).value||40;
+    var dpi=(document.getElementById('dpi')||{}).value||150;
+    const resp=await fetch('/api/generate',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({direct:true,style:style,prompt:prompt,palet:palet,tile_cm:tileCm,repeat_type:'full',dpi:dpi})});
+    const data=await resp.json();
+    if(!resp.ok||data.error){ if(typeof setStatus==='function') setStatus(data.error||'Mislukt.','error'); if(typeof setLoading==='function') setLoading(false); return; }
+    currentTileSvg=data.tile_svg_b64; currentRepeatSvg=data.repeat_svg_b64; currentInfo=data.info;
+    svgNaarPngPreview(data.tile_svg_b64,'previewTile',350);
+    svgNaarPngPreview(data.repeat_svg_b64,'previewRepeat',700);
+    var pt=document.getElementById('previewTile'), pr=document.getElementById('previewRepeat');
+    if(pt) pt.style.display=(activeTab==='tile')?'block':'none';
+    if(pr) pr.style.display=(activeTab==='repeat')?'block':'none';
+    if(typeof setLoading==='function') setLoading(false);
+    if(typeof setStatus==='function') setStatus('Klaar.','success');
+    if(pr&&pr.scrollIntoView) pr.scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(e){ if(typeof setStatus==='function') setStatus('Fout: '+e.message,'error'); if(typeof setLoading==='function') setLoading(false); }
+}

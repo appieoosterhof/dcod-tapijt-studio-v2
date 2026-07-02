@@ -18,9 +18,13 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import anthropic
 from PIL import Image, ImageDraw
-from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg, generate_bamboe_svg, generate_artdeco_svg, generate_chevron_bold_svg, generate_houndstooth_svg, generate_urban_plaid_svg
+from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg, generate_bamboe_svg, generate_artdeco_svg, generate_chevron_bold_svg, generate_houndstooth_svg, generate_urban_plaid_svg, generate_aardlagen_svg
+from modules_extra import generate_artdeco_waaier_svg
 from modules_extra import generate_artdeco_svg, generate_artdeco_hex_svg
 from modules_extra import generate_hoogtelijnen_svg
+from modules_extra import generate_japandi_svg
+from modules_extra import generate_lijnenspel_svg
+from modules_extra import generate_prism_overlay_svg
 
 app = Flask(__name__)
 CORS(app)
@@ -438,13 +442,17 @@ STYLE_GENERATORS = {
     "ogee": generate_ogee_svg,
     "diamant": generate_diamant_svg,
     "terrazzo": generate_terrazzo_svg,
-    "visgraat": generate_visgraat_lijn_svg,
     "dots": generate_dots_svg,
     "hoogtelijnen": generate_hoogtelijnen_svg,
     "vrije_vormen": generate_vrije_vormen_svg,
     "bamboe": generate_bamboe_svg,
     "art_deco_hex": generate_artdeco_hex_svg,
     "art_deco": generate_artdeco_svg,
+    "art_deco_waaier": generate_artdeco_waaier_svg,
+    "japandi": generate_japandi_svg,
+    "aardlagen": generate_aardlagen_svg,
+    "lijnenspel": generate_lijnenspel_svg,
+    "prism_overlay": generate_prism_overlay_svg,
 }
 
 
@@ -454,6 +462,12 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     p = analysis.get("_prompt", "")
     if style == "bauhaus" or "bauhaus" in p:
         style = "bauhaus"
+    elif style == "japandi" or any(w in p for w in ["japandi"]):
+        style = "japandi"
+    elif style == "lijnenspel" or any(w in p for w in ["lijnenspel"]):
+        style = "lijnenspel"
+    elif style == "prism_overlay" or any(w in p for w in ["prism overlay", "prism", "prisma", "kleurmix"]):
+        style = "prism_overlay"
     elif style == "knitwerk" or any(w in p for w in ['knitwerk', 'knit', 'gebreid', 'breiwerk', 'fair isle', 'noorse trui', 'nordic', 'scandinavisch', 'noors', 'sneeuwvlok']):
         style = "knitwerk"
     elif style == "hoogtelijnen" or any(w in p for w in ["hoogtelijn", "topografie", "contour"]):
@@ -478,6 +492,8 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "knitwerk"
     elif any(w in p for w in ["terrazzo", "steensnipp"]):
         style = "terrazzo"
+    elif any(w in p for w in ["aardlagen", "aardlaag", "natuursteen", "agaat"]):
+        style = "aardlagen"
     elif any(w in p for w in ["vrije vorm", "organisch", "vloeiend"]):
         style = "vrije_vormen"
 
@@ -486,6 +502,12 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     prompt_lower = analysis.get("_prompt", "").lower()
     if style == "bauhaus":
         pass
+    elif style == "japandi" or any(w in prompt_lower for w in ["japandi"]):
+        style = "japandi"
+    elif style == "lijnenspel" or any(w in prompt_lower for w in ["lijnenspel"]):
+        style = "lijnenspel"
+    elif style == "prism_overlay" or any(w in prompt_lower for w in ["prism overlay", "prism", "prisma", "kleurmix"]):
+        style = "prism_overlay"
     elif style == "knitwerk":
         pass
     elif style == "hoogtelijnen" or any(w in prompt_lower for w in ["hoogtelijn", "topografie", "contour"]):
@@ -510,12 +532,16 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "knitwerk"
     elif any(w in prompt_lower for w in ["terrazzo", "steensnipp"]):
         style = "terrazzo"
+    elif any(w in prompt_lower for w in ["aardlagen", "aardlaag", "natuursteen", "agaat"]):
+        style = "aardlagen"
     elif any(w in prompt_lower for w in ["vrije vorm", "organisch", "vloeiend"]):
         style = "vrije_vormen"
     if "bamboe" in p or "bamboo" in p:
         style = "bamboe"
     if "art deco" in p or "jaren 20" in p or "jaren twintig" in p:
-        if any(w in p for w in ["hexagon", "zeshoek", "honingraat"]):
+        if "waaier" in p or "palmet" in p:
+            style = "art_deco_waaier"
+        elif any(w in p for w in ["hexagon", "zeshoek", "honingraat"]):
             style = "art_deco_hex"
         else:
             style = "art_deco"
@@ -528,6 +554,9 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         "secondary": "#8B4513", "accent1": "#D4A055", "accent2": "#F0C080"
     })
     complexity = analysis.get("complexity", "medium")
+    palette["_tile_cm"] = analysis.get("_tile_cm", 40)
+    if "japandi" in analysis.get("_prompt", "").lower():
+        palette["_jp_prompt"] = analysis.get("_prompt", "")
     shape_list = analysis.get("shapes", [])
     # --- Motief-schaal via naadloze tegeling (tegel blijft ALTIJD 400) ---
     # Kleiner % = fijner = motief vaker herhaald binnen de 400-tegel.
@@ -539,7 +568,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     if n < 1:
         n = 1
     g = TEGEL // n  # interne grootte waarop de generator tekent
-    extra_styles = ["bauhaus","knitwerk","strepen","mozaiek","chevron","chevron_bold","houndstooth","urban_plaid","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","hoogtelijnen","vlechtwerk","visgraat","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex"]
+    extra_styles = ["bauhaus","knitwerk","strepen","mozaiek","chevron","chevron_bold","houndstooth","urban_plaid","hexagon","ogee","diamant","terrazzo","vrije_vormen","dots","dots","hoogtelijnen","vlechtwerk","batik","botanical","floral","nordic","persian","medallion","abstract","bamboe","art_deco","art_deco_hex","art_deco_waaier","prism_overlay","lijnenspel","japandi","aardlagen"]
     default_shapes = ["octagon", "diamond", "circle", "square", "triangle", "hexagon", "star"]
     user_specified = any(s in default_shapes and s != "octagon" for s in shape_list)
     if style in extra_styles:
@@ -649,14 +678,30 @@ def api_generate():
     repeat_type = data.get("repeat_type", "full")
     dpi = int(data.get("dpi", 150))
 
+    _direct = bool(data.get("direct"))
+    if _direct:
+        prompt = (data.get("prompt", "") or "").strip()
+        globals()["_ETALAGE_DIRECT_PAL"] = data.get("palet") or {}
     if not prompt:
         return jsonify({"error": "Voer een dessin beschrijving in."}), 400
-    if not api_key:
+    if not api_key and not _direct:
         return jsonify({"error": "Vul uw API-sleutel in."}), 400
 
     try:
-        # Stap 1: AI analyse
-        analysis = analyse_prompt(prompt, api_key)
+        # Stap 1: AI analyse (overgeslagen in direct-modus)
+        if _direct:
+            analysis = {}
+            _dp = globals().get("_ETALAGE_DIRECT_PAL") or {}
+            if _dp:
+                analysis["palette"] = {
+                    "background": _dp.get("background", "#F5F5F5"),
+                    "primary": _dp.get("primary", "#C4753A"),
+                    "secondary": _dp.get("secondary", "#8B4513"),
+                    "accent1": _dp.get("accent1", "#D4A055"),
+                    "accent2": _dp.get("accent2", "#F0C080"),
+                }
+        else:
+            analysis = analyse_prompt(prompt, api_key)
         analysis["_prompt"] = prompt.lower()
         # Overschrijf palet als gebruiker eigen kleuren heeft opgegeven
         aangepast_palet = data.get('aangepast_palet')
@@ -681,12 +726,18 @@ def api_generate():
             analysis['style'] = 'bauhaus'
         if 'bamboe' in p or 'bamboo' in p:
             analysis['style'] = 'bamboe'
+        elif any(w in p for w in ['japandi']):
+            analysis['style'] = 'japandi'
+        elif any(w in p for w in ['aardlagen', 'aardlaag', 'natuursteen', 'agaat']):
+            analysis['style'] = 'aardlagen'
+        elif any(w in p for w in ['lijnenspel']):
+            analysis['style'] = 'lijnenspel'
+        elif any(w in p for w in ['prism overlay', 'prism', 'prisma', 'kleurmix']):
+            analysis['style'] = 'prism_overlay'
         elif any(w in p for w in ['botanisch', 'bloem', 'blad', 'botanical', 'plant', 'flora']):
             analysis['style'] = 'botanical'
         elif any(w in p for w in ['vlechtwerk', 'vlecht', 'gevlochten', 'basketweave']):
             analysis['style'] = 'vlechtwerk'
-        elif any(w in p for w in ['visgraat', 'herringbone', 'visbot']):
-            analysis['style'] = 'visgraat'
         elif any(w in p for w in ['streep', 'strepen', 'stripe']):
             analysis['style'] = 'strepen'
         elif any(w in p for w in ['mozaiek', 'pixel', 'blokje']):
@@ -709,8 +760,6 @@ def api_generate():
             analysis['style'] = 'batik'
         elif any(w in p for w in ['vlechtwerk', 'vlecht', 'gevlochten', 'basketweave']):
             analysis['style'] = 'vlechtwerk'
-        elif any(w in p for w in ['visgraat', 'herringbone', 'visbot']):
-            analysis['style'] = 'visgraat'
         elif any(w in p for w in ['dots', 'stippen', 'polka']):
             analysis['style'] = 'dots'
         elif any(w in p for w in ['terrazzo', 'steensnipp']):
@@ -723,6 +772,7 @@ def api_generate():
         if 'alleen cirkel' in p:
             analysis['style'] = 'geometric'
             analysis['shapes'] = ['circle']
+        analysis['_tile_cm'] = tile_cm
         tile_svg = build_tile_svg(analysis, tile_size=400, motief_schaal=motief_schaal)
 
         # Stap 3: Bouw all-over repeat
@@ -739,6 +789,7 @@ def api_generate():
         p_low = prompt.lower()
         label_map = [
             (['bamboe', 'bamboo'], 'bamboe'),
+            (['art deco waaier', 'waaier', 'palmet'], 'art deco waaier'),
             (['art deco', 'jaren 20', 'jaren twintig'], 'art deco'),
             (['schub', 'dakpan', 'ogee'], 'schubben'),
             (['sterren'], 'sterren'),
@@ -747,7 +798,6 @@ def api_generate():
             (['ruiten', 'diamant'], 'ruiten'),
             (['terrazzo'], 'terrazzo'),
             (['mozaiek'], 'mozaiek'),
-            (['visgraat', 'herringbone'], 'visgraat'),
             (['strepen', 'streep', 'stripe'], 'strepen'),
             (['dots', 'stippen', 'polka'], 'dots'),
             (['chevronbold', 'chevron bold', 'chevron blok'], 'chevron_bold'),
