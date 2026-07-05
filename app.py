@@ -22,6 +22,7 @@ from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_c
 from modules_extra import generate_artdeco_waaier_svg
 from modules_extra import generate_artdeco_svg, generate_artdeco_hex_svg
 from modules_extra import generate_hoogtelijnen_svg
+from modules_extra import generate_botanisch_master_svg
 from modules_extra import generate_japandi_svg
 from modules_extra import generate_lijnenspel_svg
 from modules_extra import generate_prism_overlay_svg
@@ -428,7 +429,7 @@ STYLE_GENERATORS = {
     "geometric": generate_geometric_svg,
     "medallion": generate_medallion_svg,
     "floral": generate_floral_svg,
-    "botanical": generate_floral_svg,
+    "botanical": generate_botanisch_master_svg,
     "knitwerk": generate_knitwerk_svg,
     "persian": generate_medallion_svg,
     "classic": generate_medallion_svg,
@@ -586,6 +587,12 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         else:
             inner = generator(palette, g, complexity)
     # Tegel het motief n x n binnen de 400-tegel (naadloos want 400 = n * g)
+    _defs_content = ""
+    if "<defs>" in inner and "</defs>" in inner:
+        _d_start = inner.index("<defs>")
+        _d_end = inner.index("</defs>") + len("</defs>")
+        _defs_content = inner[_d_start + len("<defs>"):_d_end - len("</defs>")]
+        inner = inner[:_d_start] + inner[_d_end:]
     if n > 1:
         kopieen = []
         for iy in range(n):
@@ -595,6 +602,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
     svg = f"""<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {TEGEL} {TEGEL}"
      width="{TEGEL}" height="{TEGEL}">
+  <defs>{_defs_content}</defs>
   <rect width="{TEGEL}" height="{TEGEL}" fill="{palette['background']}"/>
   {inner}
 </svg>"""
@@ -614,6 +622,13 @@ def build_repeat_svg(tile_svg: str, analysis: dict,
     inner_start = tile_svg.index(">", tile_svg.index("<svg")) + 1
     inner_end = tile_svg.rindex("</svg>")
     inner_content = tile_svg[inner_start:inner_end].strip()
+
+    repeat_defs_content = ""
+    if "<defs>" in inner_content and "</defs>" in inner_content:
+        _rd_start = inner_content.index("<defs>")
+        _rd_end = inner_content.index("</defs>") + len("</defs>")
+        repeat_defs_content = inner_content[_rd_start + len("<defs>"):_rd_end - len("</defs>")]
+        inner_content = inner_content[:_rd_start] + inner_content[_rd_end:]
 
     tiles = []
     clip_defs = []
@@ -649,6 +664,7 @@ def build_repeat_svg(tile_svg: str, analysis: dict,
   <defs>
     <clipPath id="canvas"><rect width="{total_w}" height="{total_h}"/></clipPath>
     {"".join(clip_defs)}
+    {repeat_defs_content}
   </defs>
   <rect width="{total_w}" height="{total_h}" fill="{bg_color}"/>
   <g clip-path="url(#canvas)">{"".join(tiles)}</g>
@@ -667,6 +683,11 @@ def svg_to_png(svg_string: str, output_path: str, dpi: int = 150, tile_cm: int =
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/inspiratie")
+def inspiratie():
+    return render_template("inspiratie.html")
 
 
 @app.route("/api/generate", methods=["POST"])
@@ -838,6 +859,117 @@ def api_generate():
         })
     except Exception as e:
         return jsonify({"error": f"Generatie-fout: {str(e)}"}), 500
+
+
+REFINE_SYSTEM_INSTRUCTIE = """Je bent een assistent die vrije-tekst-instructies voor een
+tapijtdessin vertaalt naar EEN parameter-aanpassing. Je verzint GEEN nieuwe
+stijl en GEEN nieuw kleurenpalet. Je past alleen bestaande parameters aan.
+
+Geef ALLEEN een JSON-object terug (geen uitleg, geen markdown), met dit exacte format:
+
+{
+  "lw_factor": 1.3,
+  "toelichting_nl": "Korte uitleg van wat je hebt aangepast en waarom"
+}
+
+Regels voor lw_factor (lijndikte-vermenigvuldiger):
+- 1.0 = ongewijzigd (standaard dikte)
+- Groter dan 1.0 = dikkere lijnen (bv. "30% breder" -> 1.3)
+- Kleiner dan 1.0 = dunnere lijnen (bv. "de helft dunner" -> 0.5)
+- Blijf binnen het bereik 0.3 tot 3.0, ook als de gebruiker iets extremers vraagt
+- Als de instructie niets met lijndikte te maken heeft, geef dan lw_factor: 1.0
+  en leg in toelichting_nl uit dat dit (nog) niet ondersteund wordt.
+"""
+
+
+@app.route("/api/refine", methods=["POST"])
+def api_refine():
+    data = request.json
+    api_key = (data.get("api_key", "") or "").strip()
+    instructie = (data.get("instructie", "") or "").strip()
+    prompt = (data.get("prompt", "") or "").strip()
+    palet_in = data.get("palet") or {}
+    tile_cm = int(data.get("tile_cm", 40))
+    repeat_type = data.get("repeat_type", "full")
+    dpi = int(data.get("dpi", 150))
+    motief_schaal = int(data.get("motief_schaal", 100))
+    try:
+        huidige_lw_factor = float(data.get("lw_factor", 1.0) or 1.0)
+    except (TypeError, ValueError):
+        huidige_lw_factor = 1.0
+
+    if not api_key:
+        return jsonify({"error": "Vul uw API-sleutel in."}), 400
+    if not instructie:
+        return jsonify({"error": "Voer een verfijn-instructie in."}), 400
+
+    p = prompt.lower()
+    if not any(w in p for w in ["aardlagen", "aardlaag", "natuursteen", "agaat"]):
+        return jsonify({"error": "Verfijnen met AI wordt op dit moment alleen ondersteund voor het dessin Aardlagen."}), 400
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=300,
+            system=REFINE_SYSTEM_INSTRUCTIE,
+            messages=[{"role": "user", "content": instructie}],
+        )
+        ruwe_tekst = message.content[0].text.strip()
+        schoon = ruwe_tekst
+        if schoon.startswith("```"):
+            schoon = schoon.split("\n", 1)[1] if "\n" in schoon else schoon
+            if schoon.rstrip().endswith("```"):
+                schoon = schoon.rstrip()[:-3]
+            schoon = schoon.strip()
+            if schoon.startswith("json"):
+                schoon = schoon[4:].strip()
+        refine_resultaat = json.loads(schoon)
+    except json.JSONDecodeError:
+        return jsonify({"error": "AI gaf een onverwacht antwoord. Probeer opnieuw."}), 500
+    except Exception as e:
+        return jsonify({"error": f"AI-fout: {str(e)}"}), 500
+
+    try:
+        nieuwe_lw_factor = float(refine_resultaat.get("lw_factor", huidige_lw_factor))
+    except (TypeError, ValueError):
+        nieuwe_lw_factor = huidige_lw_factor
+    nieuwe_lw_factor = max(0.3, min(3.0, nieuwe_lw_factor))
+    toelichting = refine_resultaat.get("toelichting_nl", "")
+
+    palette = {
+        "background": palet_in.get("background", "#e9e0c8"),
+        "primary": palet_in.get("primary", "#6f8a4e"),
+        "secondary": palet_in.get("secondary", "#a7c58e"),
+        "accent1": palet_in.get("accent1", "#42502e"),
+        "accent2": palet_in.get("accent2", "#8aa06a"),
+    }
+    palette["_tile_cm"] = tile_cm
+    palette["_al_lw_factor"] = nieuwe_lw_factor
+
+    analysis = {
+        "style": "aardlagen",
+        "palette": palette,
+        "_prompt": prompt.lower(),
+        "_tile_cm": tile_cm,
+        "complexity": data.get("complexity", "medium"),
+    }
+
+    try:
+        tile_svg = build_tile_svg(analysis, tile_size=400, motief_schaal=motief_schaal)
+        repeat_svg = build_repeat_svg(tile_svg, analysis, tile_cm, repeat_type, dpi)
+        tile_b64 = base64.b64encode(tile_svg.encode()).decode()
+        repeat_b64 = base64.b64encode(repeat_svg.encode()).decode()
+    except Exception as e:
+        return jsonify({"error": f"Generatie-fout: {str(e)}"}), 500
+
+    return jsonify({
+        "success": True,
+        "lw_factor": nieuwe_lw_factor,
+        "toelichting_nl": toelichting,
+        "tile_svg_b64": tile_b64,
+        "repeat_svg_b64": repeat_b64,
+    })
 
 
 @app.route("/api/export/svg", methods=["POST"])

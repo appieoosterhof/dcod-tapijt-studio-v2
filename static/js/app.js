@@ -45,9 +45,13 @@ function handleRemember() {
 
 // ─── Prompt suggesties ────────────────────────────────────────────────────────
 
-function setPrompt(text) {
+function setPrompt(text, btn) {
   document.getElementById('prompt').value = text;
   document.getElementById('prompt').focus();
+  if (btn && btn.parentElement) {
+    btn.parentElement.querySelectorAll('.chip').forEach(function(el){ el.classList.remove('sub-active'); });
+    btn.classList.add('sub-active');
+  }
 }
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
@@ -434,8 +438,34 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ---- Floorvisualizer: Bekijk in ruimte ---- */
 (function(){
   var SRC = 600;
-  /* vloer-hoekpunten als fractie van de scene (TL,TR,BL,BR) */
-  var FR = [[0.150,0.547],[1.02,0.547],[-0.230,1.0],[1.107,1.0]];
+
+  /* ---- Mockup-configuratie ----
+     Eenmalig gekalibreerde hoekpunten per mockup-foto. Geen interactieve
+     kalibratietool: nieuwe mockups worden handmatig 1x uitgelijnd en hier
+     als vaste waarden toegevoegd. floorPoints = vloer-hoekpunten als
+     fractie van de scene (TL,TR,BL,BR). offsetX/offsetY (in px van de
+     patroon-tegel) en rotation (in graden) zijn optioneel, default 0 --
+     alleen invullen als een specifiek dessin/mockup dat nodig heeft. */
+  window.ROOM_MOCKUPS = window.ROOM_MOCKUPS || {
+    kantoor: {
+      label: "Werkplekken & Kantoren",
+      image: "/static/img/kantoor_meubellaag.png",
+      floorPoints: [[0.150,0.547],[1.02,0.547],[-0.230,1.0],[1.107,1.0]],
+      offsetX: 0,
+      offsetY: 0,
+      rotation: 0
+    }
+    /* Later toe te voegen, zodra de foto's + kalibratie klaar zijn:
+    hotels: { label: "Hotels & Hospitality", image: "/static/img/hotels_meubellaag.png", floorPoints: [[...]], offsetX: 0, offsetY: 0, rotation: 0 },
+    overheid: { label: "Overheid & Publieke gebouwen", image: "/static/img/overheid_meubellaag.png", floorPoints: [[...]], offsetX: 0, offsetY: 0, rotation: 0 },
+    musea: { label: "Musea & Bibliotheken", image: "/static/img/musea_meubellaag.png", floorPoints: [[...]], offsetX: 0, offsetY: 0, rotation: 0 }
+    */
+  };
+
+  var ACTIEVE_MOCKUP = "kantoor";
+  function huidigeMockup(){ return window.ROOM_MOCKUPS[ACTIEVE_MOCKUP] || window.ROOM_MOCKUPS.kantoor; }
+
+  var FR = huidigeMockup().floorPoints;
   function adj(m){return [m[4]*m[8]-m[5]*m[7],m[2]*m[7]-m[1]*m[8],m[1]*m[5]-m[2]*m[4],m[5]*m[6]-m[3]*m[8],m[0]*m[8]-m[2]*m[6],m[2]*m[3]-m[0]*m[5],m[3]*m[7]-m[4]*m[6],m[1]*m[6]-m[0]*m[7],m[0]*m[4]-m[1]*m[3]];}
   function mmm(a,b){var c=[];for(var i=0;i<3;i++)for(var j=0;j<3;j++){var s=0;for(var k=0;k<3;k++)s+=a[3*i+k]*b[3*k+j];c[3*i+j]=s;}return c;}
   function mmv(m,v){return [m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]*v[2],m[6]*v[0]+m[7]*v[1]+m[8]*v[2]];}
@@ -452,10 +482,20 @@ document.addEventListener('DOMContentLoaded', () => {
     var c=document.getElementById('ruimteCarpet');
     c.style.transform='matrix3d('+m.join(',')+')'; c.style.transformOrigin='0 0';
   }
-  function ruimteScale(){var s=+document.getElementById('ruimteScale').value;document.getElementById('ruimteCarpet').style.backgroundSize=s+'px '+s+'px';}
+  function ruimteScale(){
+    var s=+document.getElementById('ruimteScale').value;
+    var mockup=huidigeMockup();
+    var offX=mockup.offsetX||0, offY=mockup.offsetY||0;
+    var c=document.getElementById('ruimteCarpet');
+    c.style.backgroundSize=s+'px '+s+'px';
+    c.style.backgroundPosition=offX+'px '+offY+'px';
+  }
   window.openVisualizer=function(){
     if(typeof currentTileSvg==='undefined' || !currentTileSvg){ alert('Genereer eerst een dessin.'); return; }
+    var mockup=huidigeMockup();
+    FR = mockup.floorPoints;
     document.getElementById('ruimteCarpet').style.backgroundImage="url('data:image/svg+xml;base64,"+currentTileSvg+"')";
+    document.getElementById('ruimteMeubels').src=mockup.image;
     ruimteScale();
     document.getElementById('ruimteModal').style.display='flex';
     setTimeout(ruimteLayout,40);
@@ -499,3 +539,67 @@ async function genereerVoorbeeld(style, prompt, palet){
     if(pr&&pr.scrollIntoView) pr.scrollIntoView({behavior:'smooth',block:'center'});
   }catch(e){ if(typeof setStatus==='function') setStatus('Fout: '+e.message,'error'); if(typeof setLoading==='function') setLoading(false); }
 }
+
+
+/* ===== DCOD Dessinator - inspiratie-koppeling (Fase B+C) ===== */
+/* Centrale bron. 'generator' is intern; de gebruiker ziet alleen 'title'. */
+var DCOD_CONCEPTS = {
+  neo_deco:      { title:"Neo Deco",       description:"Eigentijdse geometrie voor representatieve interieurs.", generator:"art_deco_waaier", palette:"hospitality", prompt:"Art Deco waaier, luxe entree met warme messingaccenten, ritmische geometrie, rustige uitstraling", palet:{background:"#1a1a1a",primary:"#d8b24a",secondary:"#8a6a2e",accent1:"#efe6cf",accent2:"#c9a24a"} },
+  aardlagen:     { title:"Aardlagen",      description:"Organische lagen en natuurlijke structuur in aardtinten.", generator:"aardlagen", palette:"aardlagen", prompt:"aardlagen, organische natuurlijke lagen, vloeiende structuur in aardtinten", palet:{background:"#e6d9b8",primary:"#6f8a4e",secondary:"#a7c58e",accent1:"#3b4d2c",accent2:"#23311f"} },
+  japandi:       { title:"Japandi",        description:"Rust en minimalisme met gedempte natuurlijke tinten.", generator:"japandi", palette:"japandi", prompt:"japandi, rustige minimalistische vloer met gedempte natuurlijke tinten, variant: river_stones", palet:{background:"#e6d9b8",primary:"#626451",secondary:"#6E7359",accent1:"#8D9971",accent2:"#B5C49F"} },
+  urban_plaid:   { title:"Urban Plaid",    description:"Rustig architectonisch raster voor moderne werkplekken.", generator:"urban_plaid", palette:"urban", prompt:"urban plaid, architectonisch ruitpatroon met warme textiele uitstraling", palet:{background:"#e8d5c0",primary:"#c38d96",secondary:"#b5734e",accent1:"#b5734e",accent2:"#e8d5c0"} },
+  cirkels:       { title:"Cirkels",        description:"Ritmische cirkels, elegant en dynamisch.", generator:"cirkels", palette:"hospitality", prompt:"alleen cirkels, ritmisch en elegant, strak en dynamisch", palet:{background:"#1a1a1a",primary:"#c9a24a",secondary:"#efe6cf",accent1:"#8a6a2e",accent2:"#ffffff"} },
+  botanisch:     { title:"Botanisch",      description:"Expressief en bloemrijk in vol koloriet.", generator:"vrije_vormen", palette:"natuurlijk", prompt:"vrije vormen organisch, expressief en bloemrijk in vol koloriet", palet:{background:"#e6d9b8",primary:"#a03d5d",secondary:"#c9a24a",accent1:"#4e7a4e",accent2:"#6f8a4e"} },
+  hoogtelijnen:  { title:"Hoogtelijnen",   description:"Vloeiende contourlijnen, rustig en verfijnd.", generator:"hoogtelijnen", palette:"natuurlijk", prompt:"hoogtelijnen, vloeiende topografische contourlijnen, rustig en verfijnd", palet:{background:"#e9e0c8",primary:"#6f8a4e",secondary:"#a7c58e",accent1:"#42502e",accent2:"#8aa06a"} },
+  weefstructuren:{ title:"Weefstructuren", description:"Geweven textiele structuur, warm en tactiel.", generator:"urban_plaid", palette:"natuurlijk", prompt:"urban plaid, geweven textiele structuur, warm en tactiel", palet:{background:"#e6ddc8",primary:"#b89a6a",secondary:"#8a6a4e",accent1:"#6f5a3e",accent2:"#d8c8a8"} },
+  lijnenspel:    { title:"Lijnenspel",     description:"Ritmisch grafisch lijnenpatroon.", generator:"lijnenspel", palette:"zakelijk", prompt:"lijnenspel, ritmisch grafisch lijnenpatroon", palet:{background:"#EFE6CF",primary:"#003614",secondary:"#A7C58E",accent1:"#12301a",accent2:"#6f8a4e"} },
+  neo_bauhaus:   { title:"Neo Bauhaus",    description:"Heldere geometrische composities met een moderne, architectonische uitstraling.", generator:"bauhaus", palette:"geometrisch", prompt:"Bauhaus geometrisch patroon, halve cirkels driehoeken en ringen, oranje zwart grijs", palet:{background:"#1a1a1a",primary:"#d4622a",secondary:"#4a4a4a",accent1:"#c9a24a",accent2:"#efe6cf"} },
+  vrije_vormen:  { title:"Vrije vormen",   description:"Speelse organische composities met een eigentijds karakter.", generator:"vrije_vormen", palette:"artistiek", prompt:"Vrije organische vormen, vloeiend en natuurlijk", palet:{background:"#F5F1E8",primary:"#6f8a4e",secondary:"#C9A24A",accent1:"#0E2117",accent2:"#A7C58E"} }
+};
+/* project-sleutel -> nette naam (voor de breadcrumb) */
+var DCOD_PROJECTS = {
+  werkplekken:"Werkplekken & Kantoren", hotels:"Hotels & Leisure",
+  overheid:"Overheid & Publieke gebouwen", musea:"Musea & Bibliotheken"
+};
+window.addEventListener('DOMContentLoaded', function(){
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var key = params.get('concept');
+    if (!key) return;                          /* geen concept => normale Dessinator */
+    var c = DCOD_CONCEPTS[key];
+    if (!c) return;
+    var projKey = params.get('project') || '';
+    var projNaam = DCOD_PROJECTS[projKey] || '';
+
+    /* 1) verberg de etalage/voorbeeldkaarten */
+    var empty = document.getElementById('emptyState');
+    if (empty) empty.style.display = 'none';
+
+    /* 2) breadcrumb-header invoegen boven de preview */
+    var host = (document.getElementById('previewRepeat') || {}).parentNode;
+    if (host && !document.getElementById('conceptHeader')) {
+      var h = document.createElement('div');
+      h.id = 'conceptHeader';
+      h.style.cssText = 'margin:0 0 18px;padding:18px 22px;border:1px solid rgba(0,54,20,.14);border-radius:14px;background:linear-gradient(180deg,rgba(167,197,142,.10),rgba(167,197,142,.03));';
+      var crumb = '';
+      if (projNaam) crumb += '<span style="color:#5a6b57">'+projNaam+'</span> <span style="color:#A7C58E">&rarr;</span> ';
+      crumb += '<span style="color:#5a6b57">'+c.title+'</span> <span style="color:#A7C58E">&rarr;</span> <span style="color:#5a6b57">Uw eerste voorstel</span>';
+      h.innerHTML =
+        '<div style="font-size:12px;letter-spacing:.06em;margin-bottom:10px;text-transform:uppercase">'+crumb+'</div>'+
+        '<div style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#8a9a86">Startconcept</div>'+
+        '<div style="font-family:Georgia,serif;font-size:26px;color:#003614;margin:2px 0 3px">'+c.title+'</div>'+
+        (projNaam?'<div style="font-size:12px;color:#8a9a86">'+projNaam+'</div>':'')+
+        (c.description?'<div style="font-size:13.5px;color:#5a6b57;margin-top:8px">'+c.description+'</div>':'');
+      host.insertBefore(h, host.firstChild);
+    }
+
+    /* 3) direct genereren via de bestaande motor */
+    function start(){
+      if (typeof genereerVoorbeeld === 'function') { genereerVoorbeeld(key, c.prompt, c.palet); }
+      else { setTimeout(start, 120); }
+    }
+    setTimeout(start, 160);
+  } catch(e) { /* stil: nooit de Dessinator breken */ }
+});
+/* ===== einde inspiratie-koppeling ===== */
+

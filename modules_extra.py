@@ -1201,7 +1201,14 @@ def generate_aardlagen_svg(palette, tile_size, complexity, seed=None):
             tile_cm = int(palette.get("_tile_cm", 40))
         except (TypeError, ValueError):
             tile_cm = 40
-    lw = max(0.5, 3.0 / (tile_cm / 40.0))
+    lw_factor = 1.0
+    if isinstance(palette, dict):
+        try:
+            lw_factor = float(palette.get("_al_lw_factor", 1.0))
+        except (TypeError, ValueError):
+            lw_factor = 1.0
+    lw_factor = max(0.3, min(3.0, lw_factor))
+    lw = max(0.5, 3.0 / (tile_cm / 40.0)) * lw_factor
     if seed is None:
         seed = _r.randint(1, 10 ** 9)
     H = _al_field_fn(seed)
@@ -1247,3 +1254,44 @@ def generate_artdeco_waaier_svg(palette, tile_size, complexity):
         s.append("<path d=\"{}\" fill=\"{}\" fill-rule=\"evenodd\"/>".format(d, goud))
     s.append("</g>")
     return s
+
+
+# =====================================================================
+#  BOTANISCH (MASTER REPEAT) -- embed een aangeleverd, kant-en-klaar
+#  naadloos repeatbestand (geen procedurale generatie, geen AI, geen
+#  willekeur). Ondersteunt toekomstige "asset-generator" collecties op
+#  dezelfde manier: nieuw bestand -> pad aanpassen -> klaar.
+# =====================================================================
+import base64 as _botmaster_base64
+import os as _botmaster_os
+
+_BOTANISCH_MASTER_PAD = _botmaster_os.path.join(
+    _botmaster_os.path.dirname(_botmaster_os.path.abspath(__file__)),
+    "static", "img", "dessins", "botanisch_master.jpg"
+)
+_BOTANISCH_MASTER_B64_CACHE = None
+
+
+def _botanisch_master_b64():
+    global _BOTANISCH_MASTER_B64_CACHE
+    if _BOTANISCH_MASTER_B64_CACHE is None:
+        with open(_BOTANISCH_MASTER_PAD, "rb") as f:
+            _BOTANISCH_MASTER_B64_CACHE = _botmaster_base64.b64encode(f.read()).decode("ascii")
+    return _BOTANISCH_MASTER_B64_CACHE
+
+
+def generate_botanisch_master_svg(palette, tile_size, complexity):
+    """Embed het aangeleverde Botanisch master-repeatbestand als SVG-tegel.
+    Geen re-generatie, geen blending, geen rotatie/spiegeling, originele
+    kleuren en schaal behouden."""
+    T = int(tile_size)
+    b64 = _botanisch_master_b64()
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {T} {T}" '
+        f'width="{T}" height="{T}">'
+        f'<defs><image id="botMaster" '
+        f'href="data:image/jpeg;base64,{b64}" '
+        f'width="{T}" height="{T}" preserveAspectRatio="xMidYMid slice"/></defs>'
+        f'<use href="#botMaster"/>'
+        f'</svg>'
+    )

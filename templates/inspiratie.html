@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="nl"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DCOD Dessinator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--forest:#0E2117;--forest-2:#14301F;--dcod:#003614;--sage:#A7C58E;--cream:#F5F1E8;--brass:#C9A24A;--line:rgba(245,241,232,.1);--muted:rgba(245,241,232,.55)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--forest);color:var(--cream);font-family:'Avenir Next','Avenir','Montserrat',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
+.wrap{max-width:1200px;margin:0 auto;padding:0 40px}
+.logo{display:flex;align-items:baseline;gap:11px;padding:30px 0 0}
+.logo .mark{font-family:'Fraunces';font-weight:600;font-size:21px}
+.logo .sub{font-size:11px;color:var(--muted);letter-spacing:.16em;text-transform:uppercase}
+.hero{padding:48px 0 70px;text-align:center}
+.studio-title{font-family:'Avenir Next','Avenir','Montserrat',sans-serif;font-weight:600;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tm{font-size:.7em;vertical-align:super;color:var(--muted);font-weight:400}
+.hero h1{font-family:'Fraunces';font-weight:400;font-size:clamp(40px,6vw,70px);line-height:1.04;letter-spacing:-.015em;margin:0 auto}
+.logo-c-hero{width:0.88em;height:0.88em;display:inline-block;vertical-align:-0.09em;margin:0 0.02em;color:inherit}
+.hero .tagline{font-family:'Fraunces';font-weight:300;color:var(--cream);font-size:clamp(30px,4.6vw,50px);line-height:1.1;margin-top:20px;letter-spacing:-.01em}
+.q{font-family:'Fraunces';font-weight:500;font-size:24px;margin:0 0 28px;color:var(--cream)}
+.proj-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:26px}
+@media(max-width:820px){.proj-grid{grid-template-columns:1fr}}
+.proj{position:relative;border-radius:22px;overflow:hidden;cursor:pointer;min-height:360px;border:1px solid var(--line);transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s,border-color .35s,opacity .35s,filter .35s;outline:none}
+.proj-img{position:absolute;inset:0}.proj-img img{width:100%;height:100%;object-fit:cover;transition:transform .7s}
+.proj:hover .proj-img img{transform:scale(1.04)}
+.proj-cap{position:absolute;left:0;right:0;bottom:0;padding:28px 30px;background:linear-gradient(180deg,rgba(14,33,23,0),rgba(14,33,23,.82))}
+.proj-cap h3{font-family:'Fraunces';font-weight:500;font-size:29px;text-shadow:0 2px 18px rgba(0,0,0,.5)}
+.proj:hover{transform:translateY(-5px);border-color:rgba(167,197,142,.4);box-shadow:0 28px 56px -26px rgba(0,0,0,.8)}
+.proj:focus-visible{border-color:var(--sage);box-shadow:0 0 0 3px rgba(167,197,142,.4)}
+/* actieve/gedimde staat */
+.picked .proj{opacity:.42;filter:saturate(.85)}
+.picked .proj.active{opacity:1;filter:none;transform:translateY(-4px) scale(1.02);border-color:var(--sage);box-shadow:0 0 0 2px rgba(167,197,142,.55),0 30px 60px -28px rgba(0,0,0,.85)}
+/* ontwerpconcepten */
+.cc-panel{display:none;margin-top:46px;animation:fade .45s ease}
+.cc-panel.open{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.cc-head{text-align:center;margin-bottom:30px}
+.cc-eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--sage)}
+.cc-head h2{font-family:'Fraunces';font-weight:500;font-size:26px;margin-top:6px}
+.cc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+@media(max-width:820px){.cc-grid{grid-template-columns:repeat(2,1fr)}}
+.cc{background:none;border:none;padding:0;cursor:pointer;text-align:center;color:inherit;font-family:inherit;outline:none}
+.cc-mini{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;transition:transform .28s cubic-bezier(.2,.7,.2,1),box-shadow .28s;box-shadow:0 10px 24px -16px rgba(0,0,0,.7)}
+.cc:hover .cc-mini,.cc:focus-visible .cc-mini{transform:translateY(-6px);box-shadow:0 22px 40px -20px rgba(0,0,0,.85)}
+.cc-bands{position:absolute;inset:0;display:flex;flex-direction:column}.cc-band{flex:1}
+.cc-acc{position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:soft-light}.cc-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.cc-name{font-family:'Fraunces';font-size:17px;margin-top:14px;color:var(--cream)}.cc-desc{font-family:'Avenir Next','Avenir','Montserrat',sans-serif;font-size:13px;line-height:1.4;margin-top:6px;color:rgba(245,241,232,.6)}
+/* brief (zoek/beschrijf) - kleiner, ná de concepten */
+.brief{max-width:620px;margin:46px auto 0;text-align:center}
+.brief-label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.brief-row{display:flex;gap:10px;margin-top:12px}
+.brief-row input{flex:1;background:rgba(245,241,232,.05);border:1px solid var(--line);border-radius:999px;padding:14px 20px;color:var(--cream);font-family:'Avenir Next','Avenir','Montserrat',sans-serif;font-size:15px;outline:none}
+.brief-row input::placeholder{color:rgba(245,241,232,.4)}
+.brief-row input:focus{border-color:var(--sage)}
+.brief-btn{background:var(--sage);color:var(--dcod);border:none;border-radius:999px;padding:0 24px;font-weight:600;font-size:14.5px;cursor:pointer;white-space:nowrap}
+.foot{border-top:1px solid var(--line);margin-top:70px;padding:32px 0 60px;text-align:center;color:var(--muted);font-size:13px}.foot a{color:var(--sage);text-decoration:none}
+</style></head><body>
+<div class="wrap">
+  <section class="hero">
+    <h1 class="studio-title">D<svg class="logo-c-hero" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22.5,27.258 A13,13 0 1,1 22.5,4.742" stroke="#C38D96" stroke-width="3.4" stroke-linecap="round"/><path d="M19,21.196 A6,6 0 1,1 19,10.804" stroke="#6f8a4e" stroke-width="3.4" stroke-linecap="round"/></svg>OD Dessinator <sup class="tm">™</sup></h1>
+    <div class="tagline">De plek waar een vloerconcept ontstaat.</div>
+  </section>
+  <div style="text-align:center"><div class="q">Waar ontwerpt u voor?</div></div>
+  <div class="proj-grid" id="projgrid">
+      <article class="proj" onclick="kiesProject('Werkplekken & Kantoren')" tabindex="0">
+        <div class="proj-img"><img src="/static/img/projecten/project_1.jpg" alt="Werkplekken & Kantoren" loading="lazy"></div>
+        <div class="proj-cap"><h3>Werkplekken & Kantoren</h3></div>
+      </article>
+      <article class="proj" onclick="kiesProject('Hotels & Leisure')" tabindex="0">
+        <div class="proj-img"><img src="/static/img/projecten/project_2.jpg" alt="Hotels & Leisure" loading="lazy"></div>
+        <div class="proj-cap"><h3>Hotels & Leisure</h3></div>
+      </article>
+      <article class="proj" onclick="kiesProject('Overheid & Publieke gebouwen')" tabindex="0">
+        <div class="proj-img"><img src="/static/img/projecten/project_3.jpg" alt="Overheid & Publieke gebouwen" loading="lazy"></div>
+        <div class="proj-cap"><h3>Overheid & Publieke gebouwen</h3></div>
+      </article>
+      <article class="proj" onclick="kiesProject('Musea & Bibliotheken')" tabindex="0">
+        <div class="proj-img"><img src="/static/img/projecten/project_4.jpg" alt="Musea & Bibliotheken" loading="lazy"></div>
+        <div class="proj-cap"><h3>Musea & Bibliotheken</h3></div>
+      </article>
+  </div>
+  
+      <section class="cc-panel" id="panel_werkplekken_en_kantoren">
+        <div class="cc-head"><span class="cc-eyebrow">Aanbevolen voor</span><h2>Werkplekken & Kantoren</h2></div>
+        <div class="cc-grid">
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Urban Plaid')" aria-label="Urban Plaid">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/urban_plaid.jpg" alt="Urban Plaid" loading="lazy"></div>
+          <div class="cc-name">Urban Plaid</div>
+          <div class="cc-desc">Modern raster met een warme, textiele uitstraling.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Neo Bauhaus')" aria-label="Neo Bauhaus">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/neo_bauhaus.jpg" alt="Neo Bauhaus" loading="lazy"></div>
+          <div class="cc-name">Neo Bauhaus</div>
+          <div class="cc-desc">Eigentijdse geometrie voor moderne architectuur en creatieve werkplekken.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Hoogtelijnen')" aria-label="Hoogtelijnen">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/hoogtelijnen.jpg" alt="Hoogtelijnen" loading="lazy"></div>
+          <div class="cc-name">Hoogtelijnen</div>
+          <div class="cc-desc">Organische contourlijnen die rust en richting geven.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Japandi')" aria-label="Japandi">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/japandi.jpg" alt="Japandi" loading="lazy"></div>
+          <div class="cc-name">Japandi</div>
+          <div class="cc-desc">Minimalistische eenvoud met een rustige, tijdloze uitstraling.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Weefstructuren')" aria-label="Weefstructuren">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/weefstructuren.jpg" alt="Weefstructuren" loading="lazy"></div>
+          <div class="cc-name">Weefstructuren</div>
+          <div class="cc-desc">Geïnspireerd op geweven textiel voor grote kantoorvloeren.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Aardlagen')" aria-label="Aardlagen">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/aardlagen.jpg" alt="Aardlagen" loading="lazy"></div>
+          <div class="cc-name">Aardlagen</div>
+          <div class="cc-desc">Organische patronen voor representatieve ontvangst- en ontmoetingsruimten.</div>
+        </button>
+        </div>
+      </section>
+      <section class="cc-panel" id="panel_hotels_en_leisure">
+        <div class="cc-head"><span class="cc-eyebrow">Aanbevolen voor</span><h2>Hotels & Leisure</h2></div>
+        <div class="cc-grid">
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Neo Deco')" aria-label="Neo Deco">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/neo_deco.jpg" alt="Neo Deco" loading="lazy"></div>
+          <div class="cc-name">Neo Deco</div>
+          <div class="cc-desc">Eigentijdse geometrie met een luxe uitstraling voor hotels en hospitality.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Aardlagen')" aria-label="Aardlagen">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/aardlagen.jpg" alt="Aardlagen" loading="lazy"></div>
+          <div class="cc-name">Aardlagen</div>
+          <div class="cc-desc">Organische patronen die warmte, rust en natuurlijke elegantie brengen.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Urban Plaid')" aria-label="Urban Plaid">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/urban_plaid.jpg" alt="Urban Plaid" loading="lazy"></div>
+          <div class="cc-name">Urban Plaid</div>
+          <div class="cc-desc">Een verfijnde textielstructuur voor eigentijdse boutique hotels en lounges.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Botanisch')" aria-label="Botanisch">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/botanisch.jpg" alt="Botanisch" loading="lazy"></div>
+          <div class="cc-name">Botanisch</div>
+          <div class="cc-desc">Abstracte natuurlijke vormen die een ontspannen en gastvrije sfeer creëren.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Vrije vormen')" aria-label="Vrije vormen">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/vrije_vormen.jpg" alt="Vrije vormen" loading="lazy"></div>
+          <div class="cc-name">Vrije vormen</div>
+          <div class="cc-desc">Artistieke composities die lobby's en hospitalityruimten een eigen identiteit geven.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Neo Bauhaus')" aria-label="Neo Bauhaus">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/neo_bauhaus.jpg" alt="Neo Bauhaus" loading="lazy"></div>
+          <div class="cc-name">Neo Bauhaus</div>
+          <div class="cc-desc">Heldere geometrische vormen voor moderne designhotels en hospitalityconcepten.</div>
+        </button>
+        </div>
+      </section>
+      <section class="cc-panel" id="panel_overheid_en_publieke_gebouwen">
+        <div class="cc-head"><span class="cc-eyebrow">Aanbevolen voor</span><h2>Overheid & Publieke gebouwen</h2></div>
+        <div class="cc-grid">
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Urban Plaid')" aria-label="Urban Plaid">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/urban_plaid.jpg" alt="Urban Plaid" loading="lazy"></div>
+          <div class="cc-name">Urban Plaid</div>
+          <div class="cc-desc">Professionele, tijdloze basis voor publieke gebouwen.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Hoogtelijnen')" aria-label="Hoogtelijnen">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/hoogtelijnen.jpg" alt="Hoogtelijnen" loading="lazy"></div>
+          <div class="cc-name">Hoogtelijnen</div>
+          <div class="cc-desc">Rustige contourlijnen voor grote openbare ruimten.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Weefstructuren')" aria-label="Weefstructuren">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/weefstructuren.jpg" alt="Weefstructuren" loading="lazy"></div>
+          <div class="cc-name">Weefstructuren</div>
+          <div class="cc-desc">Warme textiele uitstraling met een duurzaam karakter.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Aardlagen')" aria-label="Aardlagen">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/aardlagen.jpg" alt="Aardlagen" loading="lazy"></div>
+          <div class="cc-name">Aardlagen</div>
+          <div class="cc-desc">Natuurlijke uitstraling voor ontvangst- en wachtruimten.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Japandi')" aria-label="Japandi">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/japandi.jpg" alt="Japandi" loading="lazy"></div>
+          <div class="cc-name">Japandi</div>
+          <div class="cc-desc">Minimalistische rust voor vergader- en bestuursruimten.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Neo Bauhaus')" aria-label="Neo Bauhaus">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/neo_bauhaus.jpg" alt="Neo Bauhaus" loading="lazy"></div>
+          <div class="cc-name">Neo Bauhaus</div>
+          <div class="cc-desc">Heldere geometrie voor eigentijdse overheidsarchitectuur.</div>
+        </button>
+        </div>
+      </section>
+      <section class="cc-panel" id="panel_musea_en_bibliotheken">
+        <div class="cc-head"><span class="cc-eyebrow">Aanbevolen voor</span><h2>Musea & Bibliotheken</h2></div>
+        <div class="cc-grid">
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Botanisch')" aria-label="Botanisch">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/botanisch.jpg" alt="Botanisch" loading="lazy"></div>
+          <div class="cc-name">Botanisch</div>
+          <div class="cc-desc">Organische patronen die verwondering en natuur uitstralen.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Aardlagen')" aria-label="Aardlagen">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/aardlagen.jpg" alt="Aardlagen" loading="lazy"></div>
+          <div class="cc-name">Aardlagen</div>
+          <div class="cc-desc">Geïnspireerd op landschap, geologie en cultuur.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Hoogtelijnen')" aria-label="Hoogtelijnen">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/hoogtelijnen.jpg" alt="Hoogtelijnen" loading="lazy"></div>
+          <div class="cc-name">Hoogtelijnen</div>
+          <div class="cc-desc">Contourlijnen die ontdekken en oriëntatie verbeelden.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Vrije vormen')" aria-label="Vrije vormen">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/vrije_vormen.jpg" alt="Vrije vormen" loading="lazy"></div>
+          <div class="cc-name">Vrije vormen</div>
+          <div class="cc-desc">Artistieke composities voor culturele ruimtes.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Neo Bauhaus')" aria-label="Neo Bauhaus">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/neo_bauhaus.jpg" alt="Neo Bauhaus" loading="lazy"></div>
+          <div class="cc-name">Neo Bauhaus</div>
+          <div class="cc-desc">Moderne geometrie voor hedendaagse musea.</div>
+        </button>
+        <button class="cc" onclick="event.stopPropagation(); startConcept('Urban Plaid')" aria-label="Urban Plaid">
+          <div class="cc-mini"><img class="cc-photo" src="/static/img/inspiratie/urban_plaid.jpg" alt="Urban Plaid" loading="lazy"></div>
+          <div class="cc-name">Urban Plaid</div>
+          <div class="cc-desc">Rustige textielstructuur voor lees- en verblijfsruimten.</div>
+        </button>
+        </div>
+      </section>
+  <div class="foot">Een designpartner-tool van <a href="#">DCOD Printtapijt</a></div>
+</div>
+<script>
+var DCOD_PROJECT_KEYS = {
+  "Werkplekken & Kantoren":"werkplekken",
+  "Hotels & Leisure":"hotels",
+  "Overheid & Publieke gebouwen":"overheid",
+  "Musea & Bibliotheken":"musea"
+};
+var DCOD_CONCEPT_KEYS = {
+  "Neo Deco":"neo_deco",
+  "Aardlagen":"aardlagen",
+  "Japandi":"japandi",
+  "Urban Plaid":"urban_plaid",
+  "Cirkels":"cirkels",
+  "Botanisch":"botanisch",
+  "Hoogtelijnen":"hoogtelijnen",
+  "Weefstructuren":"weefstructuren",
+  "Lijnenspel":"lijnenspel",
+  "Neo Bauhaus":"neo_bauhaus",
+  "Vrije vormen":"vrije_vormen"
+};
+var _dcodCurrentProject = '';
+function kiesProject(naam){
+  _dcodCurrentProject = naam;
+  var grid=document.getElementById('projgrid'); grid.classList.add('picked');
+  document.querySelectorAll('.proj').forEach(p=>p.classList.toggle('active', p.querySelector('h3').textContent===naam));
+  var pid='panel_'+naam.toLowerCase().replace(/ /g,'_').replace(/&/g,'en');
+  document.querySelectorAll('.cc-panel').forEach(x=>x.classList.remove('open'));
+  var panel=document.getElementById(pid);
+  if(panel){panel.classList.add('open'); setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'start'}),60);}
+}
+function startConcept(naam){
+  var conceptKey = DCOD_CONCEPT_KEYS[naam];
+  if (!conceptKey) {
+    /* onbekende naam (bv. brief-btn geeft nu nog een projectnaam mee i.p.v. conceptnaam) */
+    console.warn('startConcept: onbekend concept "'+naam+'", geen parameters meegegeven.');
+    window.location.href = "/";
+    return;
+  }
+  var projectKey = DCOD_PROJECT_KEYS[_dcodCurrentProject] || '';
+  var url = "/?concept=" + encodeURIComponent(conceptKey);
+  if (projectKey) url += "&project=" + encodeURIComponent(projectKey);
+  window.location.href = url;
+}
+</script>
+</body></html>

@@ -29,6 +29,7 @@ header{background:rgba(17,19,21,.85);backdrop-filter:blur(8px);border-bottom:1px
 .brand-text .name{font-size:18px;font-weight:700;color:var(--text-strong);letter-spacing:.02em;}
 .brand-text .name b{font-weight:800;}
 .brand-text .name .tm{font-size:11px;vertical-align:super;color:var(--green);font-weight:600;}
+.name .logo-c{display:inline-block;vertical-align:-1px;margin:0 1px;}
 .brand-text .slogan{font-size:11.5px;color:var(--green);letter-spacing:.14em;text-transform:uppercase;margin-top:1px;}
 .header-sub{font-size:12.5px;color:var(--muted);max-width:300px;text-align:right;line-height:1.4;}
 .header-sub a{color:var(--green);}
@@ -163,7 +164,7 @@ textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(
 #paletteSwatches{display:flex;gap:6px;}
 .swatch{width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,.14);}
 .export-row{display:flex;gap:9px;flex-wrap:wrap;}
-.btn-export{padding:11px 17px;background:transparent;border:1px solid var(--line-strong);color:var(--text);border-radius:var(--radius-sm);font-size:13.5px;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:8px;transition:.15s;}
+.btn-export{padding:14px 22px;background:var(--roze);border:none;color:#33141b;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:8px;transition:.15s;}
 .btn-export:hover{border-color:var(--green);color:var(--green);}
 
 .process{border-top:1px solid var(--line);background:rgba(17,19,21,.6);margin-top:8px;}
@@ -200,6 +201,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);padding:18px;border
 /* ART-DECO-SUBKLEUR: sub-stijlen horen zichtbaar bij de Art Deco-knop */
 #artdecoSub .chip{background:#A7C58E !important;border:1px solid #7BA86A !important;color:#12301A !important;font-weight:600;}
 #artdecoSub .chip:hover{background:#B9D4A6 !important;}
+#artdecoSub .chip.sub-active,#japandiSub .chip.sub-active{background:#EFE6CF !important;border:2px solid #4C7A3A !important;color:#0E2117 !important;font-weight:700;}
 </style>
 </head>
 <body>
@@ -207,12 +209,8 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);padding:18px;border
 <header>
   <div class="header-inner">
     <div class="brand">
-      <div class="logo-mark" aria-hidden="true">
-        <span style="background:#C38D96"></span><span style="background:#A7C58E"></span>
-        <span style="background:#A7C58E"></span><span style="background:#6f8a4e"></span>
-      </div>
       <div class="brand-text">
-        <div class="name"><b>DCOD</b> Dessinator<span class="tm">™</span></div>
+        <div class="name"><b>D</b><svg class="logo-c" width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22.5,27.258 A13,13 0 1,1 22.5,4.742" stroke="#C38D96" stroke-width="3.4" stroke-linecap="round"/><path d="M19,21.196 A6,6 0 1,1 19,10.804" stroke="#6f8a4e" stroke-width="3.4" stroke-linecap="round"/></svg><b>OD</b> Dessinator<span class="tm">™</span></div>
         <div class="slogan">Van woord tot vloer</div>
       </div>
     </div>
@@ -239,39 +237,52 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);padding:18px;border
     <section class="card">
       <div class="step-head"><div class="step-num">1</div><h2>Kies een ontwerprichting</h2></div>
       <div class="suggestions">
-        <button class="chip" onclick="setPrompt('Aardlagen natuursteen agaat, aardetinten')">Aardlagen</button>
-        <button class="chip" onclick="setPrompt('Art Deco hexagon, goud en zwart, jaren 20 stijl'); showArtdecoSub()">Art Deco</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Aardlagen natuursteen agaat, aardetinten')">Aardlagen</button>
+        <button class="chip" onclick="setPrompt('Art Deco hexagon, goud en zwart, jaren 20 stijl'); showArtdecoSub()">Neo Deco</button>
         <div id="artdecoSub" style="display:none;flex-basis:100%;flex-wrap:wrap;gap:6px;margin-top:8px;">
-          <button class="chip adeco-sub" onclick="setPrompt('Art Deco waaier, goud en zwart, jaren 20 stijl')">Waaier</button>
-          <button class="chip adeco-sub" onclick="setPrompt('Art Deco zonnestralen, goud en zwart, jaren 20 stijl')">Zonnestralen</button>
-          <button class="chip adeco-sub" onclick="setPrompt('Art Deco hexagon honingraat, goud en zwart, jaren 20 stijl')">Honingraat</button>
+          <button class="chip adeco-sub" onclick="setPrompt('Art Deco waaier, goud en zwart, jaren 20 stijl', this)">Waaier</button>
+          <button class="chip adeco-sub" onclick="setPrompt('Art Deco zonnestralen, goud en zwart, jaren 20 stijl', this)">Zonnestralen</button>
+          <button class="chip adeco-sub" onclick="setPrompt('Art Deco hexagon honingraat, goud en zwart, jaren 20 stijl', this)">Honingraat</button>
         </div>
-        <button class="chip" onclick="setPrompt('Bauhaus geometrisch patroon, halve cirkels driehoeken en ringen, oranje zwart grijs')">Bauhaus</button>
-        <button class="chip" onclick="setPrompt('Botanisch bloemmotief art nouveau stijl, zachte groene en beige kleuren')">Botanisch</button>
-        <button class="chip" onclick="setPrompt('chevronbold patroon, gevulde schuine plankjes, zwart wit')">Chevron Bold</button>
-        <button class="chip" onclick="setPrompt('Alleen cirkels, strak en minimalistisch')">Cirkels</button>
-        <button class="chip" onclick="setPrompt('Dots stippen patroon, polka dots')">Dots</button>
-        <button class="chip" onclick="setPrompt('hoogtelijnen patroon, style:hoogtelijnen, topografie contourlijnen')">Hoogtelijnen</button>
-        <button class="chip" onclick="setPrompt('houndstooth patroon, hanenpoot pied-de-poule, zwart wit')">Houndstooth</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Bauhaus geometrisch patroon, halve cirkels driehoeken en ringen, oranje zwart grijs')">Neo Bauhaus</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Botanisch bloemmotief art nouveau stijl, zachte groene en beige kleuren')">Botanisch</button>
+        
+        
+        
+        <button class="chip" onclick="hideSubmenus(); setPrompt('hoogtelijnen patroon, style:hoogtelijnen, topografie contourlijnen')">Hoogtelijnen</button>
+        
         <button class="chip" onclick="setPrompt('Japandi stijl, rustige ronde en gebogen vormen in zachte gedempte tinten'); showJapandiSub()">Japandi</button>
         <div id="japandiSub" style="display:none;flex-basis:100%;flex-wrap:wrap;gap:6px;margin-top:8px;">
-          <button class="chip" onclick="setPrompt('Japandi variant: river_stones')">River Stones</button>
-          <button class="chip" onclick="setPrompt('Japandi variant: stroming')">Stroming</button>
-          <button class="chip" onclick="setPrompt('Japandi variant: organic_leaves')">Organic Leaves</button>
-          <button class="chip" onclick="setPrompt('Japandi variant: golven')">Golven</button>
+          <button class="chip" onclick="setPrompt('Japandi variant: river_stones', this)">River Stones</button>
+          <button class="chip" onclick="setPrompt('Japandi variant: stroming', this)">Stroming</button>
+          <button class="chip" onclick="setPrompt('Japandi variant: organic_leaves', this)">Organic Leaves</button>
+          <button class="chip" onclick="setPrompt('Japandi variant: golven', this)">Golven</button>
         </div>
-        <button class="chip" onclick="setPrompt('Scandinavisch knitwerk patroon, gebreide steken, zigzag banden in blauw en wit')">Knitwerk</button>
-        <button class="chip" onclick="setPrompt('Lijnenspel, fijne verticale banen in clusters met horizontale kleurzones op donkere ondergrond')">Lijnenspel</button>
-        <button class="chip" onclick="setPrompt('Medaillon geometrisch tegelmotief, donkerblauw en diep rood met gouden accenten')">Medaillon</button>
-        <button class="chip" onclick="setPrompt('Pixel mozaiek patroon, kleurrijke blokken')">Mozaiek</button>
-        <button class="chip" onclick="setPrompt('Prism overlay, prisma kleurmix met verrassende transparante kleurvlakken, levendig')">Prism Overlay</button>
-        <button class="chip" onclick="setPrompt('Alleen ruiten en diamanten, geometrisch')">Ruiten</button>
-        <button class="chip" onclick="setPrompt('Ogee schubben dakpan patroon')">Schubben</button>
-        <button class="chip" onclick="setPrompt('Alleen sterren, strak patroon')">Sterren</button>
-        <button class="chip" onclick="setPrompt('strepen patroon, style:strepen, verticale kleurstroken')">Strepen</button>
-        <button class="chip" onclick="setPrompt('Terrazzo patroon, gekleurde steensnippers op lichte ondergrond')">Terrazzo</button>
-        <button class="chip" onclick="setPrompt('urban plaid tartan ruit patroon, geweven lijnen')">Urban Plaid</button>
-        <button class="chip" onclick="setPrompt('Vrije organische vormen, vloeiend en natuurlijk')">Vrije vormen</button>
+        
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Lijnenspel, fijne verticale banen in clusters met horizontale kleurzones op donkere ondergrond')">Lijnenspel</button>
+        
+        
+        
+        
+        
+        
+        
+        
+        <button class="chip" onclick="hideSubmenus(); setPrompt('urban plaid tartan ruit patroon, geweven lijnen')">Urban Plaid</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Vrije organische vormen, vloeiend en natuurlijk')">Vrije vormen</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('chevronbold patroon, gevulde schuine plankjes, zwart wit')">Chevron Bold</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Alleen cirkels, strak en minimalistisch')">Cirkels</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Dots stippen patroon, polka dots')">Dots</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('houndstooth patroon, hanenpoot pied-de-poule, zwart wit')">Houndstooth</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Scandinavisch knitwerk patroon, gebreide steken, zigzag banden in blauw en wit')">Knitwerk</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Medaillon geometrisch tegelmotief, donkerblauw en diep rood met gouden accenten')">Medaillon</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Pixel mozaiek patroon, kleurrijke blokken')">Mozaiek</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Prism overlay, prisma kleurmix met verrassende transparante kleurvlakken, levendig')">Prism Overlay</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Alleen ruiten en diamanten, geometrisch')">Ruiten</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Ogee schubben dakpan patroon')">Schubben</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Alleen sterren, strak patroon')">Sterren</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('strepen patroon, style:strepen, verticale kleurstroken')">Strepen</button>
+        <button class="chip" onclick="hideSubmenus(); setPrompt('Terrazzo patroon, gekleurde steensnippers op lichte ondergrond')">Terrazzo</button>
       </div>
     </section>
 
@@ -667,7 +678,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);padding:18px;border
 </div>
 
 <select id="repeatType" style="display:none"><option value="full" selected>full</option></select>
-<script src="/static/js/app.js?v=20260702_094136"></script>
+<script src="/static/js/app.js?v=20260704_182828"></script>
 <script>
 (function(){
   const PH=["Luxe hotellobby met organische hoogtelijnen in goud en mosgroen",
@@ -710,6 +721,15 @@ function applyTheme(name,btn){
 
 /* De blokken Sfeer / Geschikt voor / Ontwerpvisie worden nu door app.js
    bij elke generatie gevuld (zie generate-functie). Geen observer meer nodig. */
+</script>
+<script>
+
+// Sluit beide submenu's (Neo Deco/Japandi) -- aangeroepen door alle
+// andere hoofdknoppen zodat er nooit een oud submenu blijft staan.
+function hideSubmenus(){
+  var a=document.getElementById('artdecoSub'); if(a) a.style.display='none';
+  var j=document.getElementById('japandiSub'); if(j) j.style.display='none';
+}
 </script>
 </body>
 </html>
