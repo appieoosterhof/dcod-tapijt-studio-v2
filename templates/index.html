@@ -673,12 +673,28 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);padding:18px;border
     <div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
       <label style="font-size:13px;color:var(--muted);">Dessingrootte</label>
       <input type="range" id="ruimteScale" min="30" max="140" step="1" value="60" style="flex:1;accent-color:var(--green);">
+      <button type="button" onclick="window.toggleKalibratie && toggleKalibratie()" style="font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid var(--muted);background:none;color:var(--muted);cursor:pointer;">🎯 Kalibreer hoekpunten</button>
+    </div>
+    <div id="kalibratiePanel" style="display:none;margin-top:10px;padding:10px;background:rgba(255,255,255,0.06);border-radius:8px;font-size:12px;color:var(--muted);">
+      <div>Sleep de gekleurde punten: <span style="color:#ff4d4d;">●TL</span> <span style="color:#4dff4d;">●TR</span> <span style="color:#4d8cff;">●BL</span> <span style="color:#ffe14d;">●BR</span></div>
+      <pre id="kalibratieWaarden" style="white-space:pre-wrap;word-break:break-all;margin:6px 0;color:#fff;"></pre>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button type="button" onclick="window.kopieerKalibratie && kopieerKalibratie()" style="font-size:12px;padding:5px 9px;border-radius:6px;border:1px solid var(--muted);background:none;color:var(--muted);cursor:pointer;">Kopieer waarden</button>
+        <span style="width:1px;height:18px;background:var(--muted);opacity:0.4;"></span>
+        <label style="font-size:12px;">Vloerpatroon verschuiven:</label>
+        <button type="button" onclick="window.verschuifVloer && verschuifVloer(-0.02)" style="font-size:14px;padding:4px 10px;border-radius:6px;border:1px solid var(--muted);background:none;color:var(--muted);cursor:pointer;">◀</button>
+        <button type="button" onclick="window.verschuifVloer && verschuifVloer(0.02)" style="font-size:14px;padding:4px 10px;border-radius:6px;border:1px solid var(--muted);background:none;color:var(--muted);cursor:pointer;">▶</button>
+        <span style="width:1px;height:18px;background:var(--muted);opacity:0.4;"></span>
+        <label style="font-size:12px;">Vloer verbreden (zelfde perspectief):</label>
+        <button type="button" onclick="window.verbredenVloer && verbredenVloer('links',0.02)" style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--muted);background:none;color:var(--muted);cursor:pointer;">◀ links</button>
+        <button type="button" onclick="window.verbredenVloer && verbredenVloer('rechts',0.02)" style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--muted);background:none;color:var(--muted);cursor:pointer;">rechts ▶</button>
+      </div>
     </div>
   </div>
 </div>
 
 <select id="repeatType" style="display:none"><option value="full" selected>full</option></select>
-<script src="/static/js/app.js?v=20260704_182828"></script>
+<script src="/static/js/app.js?v=20260707_130400"></script>
 <script>
 (function(){
   const PH=["Luxe hotellobby met organische hoogtelijnen in goud en mosgroen",

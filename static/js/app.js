@@ -440,17 +440,20 @@ document.addEventListener('DOMContentLoaded', () => {
   var SRC = 600;
 
   /* ---- Mockup-configuratie ----
-     Eenmalig gekalibreerde hoekpunten per mockup-foto. Geen interactieve
-     kalibratietool: nieuwe mockups worden handmatig 1x uitgelijnd en hier
-     als vaste waarden toegevoegd. floorPoints = vloer-hoekpunten als
-     fractie van de scene (TL,TR,BL,BR). offsetX/offsetY (in px van de
-     patroon-tegel) en rotation (in graden) zijn optioneel, default 0 --
-     alleen invullen als een specifiek dessin/mockup dat nodig heeft. */
+     Eenmalig gekalibreerde hoekpunten per mockup-foto, als vaste waarden
+     hieronder. floorPoints = vloer-hoekpunten als fractie van de scene
+     (TL,TR,BL,BR). offsetX/offsetY (in px van de patroon-tegel) en rotation
+     (in graden) zijn optioneel, default 0 -- alleen invullen als een
+     specifiek dessin/mockup dat nodig heeft.
+     Kalibreren: klik in "Bekijk in ruimte" op "🎯 Kalibreer hoekpunten" om
+     de 4 punten (TL/TR/BL/BR) te verslepen; de waarden verschijnen live
+     onder de foto en kunnen met "Kopieer waarden" hierheen overgenomen
+     worden. */
   window.ROOM_MOCKUPS = window.ROOM_MOCKUPS || {
     kantoor: {
       label: "Werkplekken & Kantoren",
       image: "/static/img/kantoor_meubellaag.png",
-      floorPoints: [[0.150,0.547],[1.02,0.547],[-0.230,1.0],[1.107,1.0]],
+      floorPoints: [[0.313,0.536],[0.856,0.516],[-0.296,1.0],[1.736,1.0]],
       offsetX: 0,
       offsetY: 0,
       rotation: 0
@@ -490,10 +493,22 @@ document.addEventListener('DOMContentLoaded', () => {
     c.style.backgroundSize=s+'px '+s+'px';
     c.style.backgroundPosition=offX+'px '+offY+'px';
   }
+  function kalibratieOpslagSleutel(){ return 'dcod_floorPoints_'+ACTIEVE_MOCKUP; }
+  function kalibratieOpslaan(){
+    try{ localStorage.setItem(kalibratieOpslagSleutel(), JSON.stringify(FR)); }catch(e){}
+  }
+  function kalibratieOpgeslagenLaden(mockup){
+    try{
+      var raw = localStorage.getItem(kalibratieOpslagSleutel());
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return mockup.floorPoints;
+  }
+
   window.openVisualizer=function(){
     if(typeof currentTileSvg==='undefined' || !currentTileSvg){ alert('Genereer eerst een dessin.'); return; }
     var mockup=huidigeMockup();
-    FR = mockup.floorPoints;
+    FR = kalibratieOpgeslagenLaden(mockup);
     document.getElementById('ruimteCarpet').style.backgroundImage="url('data:image/svg+xml;base64,"+currentTileSvg+"')";
     document.getElementById('ruimteMeubels').src=mockup.image;
     ruimteScale();
@@ -501,7 +516,121 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(ruimteLayout,40);
   };
   document.addEventListener('input',function(e){ if(e.target && e.target.id==='ruimteScale') ruimteScale(); });
-  window.addEventListener('resize',function(){ var md=document.getElementById('ruimteModal'); if(md && md.style.display==='flex') ruimteLayout(); });
+  window.addEventListener('resize',function(){ var md=document.getElementById('ruimteModal'); if(md && md.style.display==='flex') { ruimteLayout(); if(kalibratieActief) kalibratieTeken(); } });
+
+  /* ---- Tijdelijke kalibratietool: hoekpunten slepen i.p.v. handmatig getallen invullen ---- */
+  var kalibratieActief = false;
+  var kalibratieLabels = ['TL','TR','BL','BR'];
+  var kalibratieKleuren = ['#ff4d4d','#4dff4d','#4d8cff','#ffe14d'];
+
+  function kalibratieWaardenTonen(){
+    var el = document.getElementById('kalibratieWaarden');
+    if(!el) return;
+    el.textContent = 'floorPoints: [' + FR.map(function(p){ return '['+p[0].toFixed(3)+','+p[1].toFixed(3)+']'; }).join(',') + ']';
+  }
+
+  function kalibratieTeken(){
+    var scene = document.getElementById('ruimteScene');
+    if(!scene) return;
+    var W = scene.clientWidth, H = scene.clientHeight;
+    document.querySelectorAll('.kalibratie-dot').forEach(function(d){ d.remove(); });
+    FR.forEach(function(p, i){
+      var d = document.createElement('div');
+      d.className = 'kalibratie-dot';
+      d.dataset.idx = i;
+      d.style.position = 'absolute';
+      d.style.left = (p[0]*W - 9) + 'px';
+      d.style.top = (p[1]*H - 9) + 'px';
+      d.style.width = '18px'; d.style.height = '18px'; d.style.borderRadius = '50%';
+      d.style.background = kalibratieKleuren[i];
+      d.style.border = '2px solid #111';
+      d.style.zIndex = '999';
+      d.style.cursor = 'grab';
+      d.style.boxShadow = '0 0 0 2px rgba(255,255,255,0.6)';
+      d.title = kalibratieLabels[i];
+      scene.appendChild(d);
+    });
+    kalibratieWaardenTonen();
+  }
+
+  function kalibratieOpruimen(){
+    document.querySelectorAll('.kalibratie-dot').forEach(function(d){ d.remove(); });
+  }
+
+  var sleepIdx = null;
+  document.addEventListener('pointerdown', function(e){
+    if(!e.target.classList || !e.target.classList.contains('kalibratie-dot')) return;
+    sleepIdx = +e.target.dataset.idx;
+    e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', function(e){
+    if(sleepIdx === null) return;
+    var scene = document.getElementById('ruimteScene');
+    var rect = scene.getBoundingClientRect();
+    var fx = (e.clientX - rect.left) / rect.width;
+    var fy = (e.clientY - rect.top) / rect.height;
+    FR[sleepIdx] = [Math.round(fx*1000)/1000, Math.round(fy*1000)/1000];
+    ruimteLayout();
+    kalibratieTeken();
+    kalibratieOpslaan();
+  });
+  document.addEventListener('pointerup', function(){ sleepIdx = null; });
+
+  window.verschuifVloer = function(dx){
+    FR.forEach(function(p){ p[0] = Math.round((p[0]+dx)*1000)/1000; });
+    ruimteLayout();
+    kalibratieTeken();
+    kalibratieOpslaan();
+  };
+
+  /* Verbreedt de vloer aan een zijde door TR/BR (of TL/BL) verder te
+     schuiven langs de bestaande rand-richting (TL->TR resp. BL->BR), zodat
+     de rand-hoek (het perspectief) niet verandert -- alleen het vlak wordt
+     langer in dezelfde richting. */
+  window.verbredenVloer = function(kant, stap){
+    var TL=FR[0], TR=FR[1], BL=FR[2], BR=FR[3];
+    function verlengen(vast, punt, stap){
+      var dx=punt[0]-vast[0], dy=punt[1]-vast[1];
+      var len=Math.sqrt(dx*dx+dy*dy) || 1;
+      return [Math.round((punt[0]+dx/len*stap)*1000)/1000, Math.round((punt[1]+dy/len*stap)*1000)/1000];
+    }
+    if(kant==='rechts'){
+      FR[1] = verlengen(TL, TR, stap);
+      FR[3] = verlengen(BL, BR, stap);
+    } else {
+      FR[0] = verlengen(TR, TL, stap);
+      FR[2] = verlengen(BR, BL, stap);
+    }
+    ruimteLayout();
+    kalibratieTeken();
+    kalibratieOpslaan();
+  };
+
+  window.toggleKalibratie = function(){
+    kalibratieActief = !kalibratieActief;
+    var paneel = document.getElementById('kalibratiePanel');
+    var scene = document.getElementById('ruimteScene');
+    if(kalibratieActief){
+      if(paneel) paneel.style.display = 'block';
+      if(scene) scene.style.overflow = 'visible';
+      ruimteLayout();
+      kalibratieTeken();
+    } else {
+      if(paneel) paneel.style.display = 'none';
+      if(scene) scene.style.overflow = 'hidden';
+      kalibratieOpruimen();
+    }
+  };
+
+  window.kopieerKalibratie = function(){
+    var tekst = 'floorPoints: [' + FR.map(function(p){ return '['+p[0]+','+p[1]+']'; }).join(',') + ']';
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(tekst);
+    }
+    var el = document.getElementById('kalibratieWaarden');
+    if(el) el.textContent = tekst + '  ✓ gekopieerd';
+  };
 })();
 
 // Japandi-collectie: submenu tonen na klik op Japandi
