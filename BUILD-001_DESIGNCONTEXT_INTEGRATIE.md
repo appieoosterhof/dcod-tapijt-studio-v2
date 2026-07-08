@@ -203,3 +203,27 @@ Flask app.py (routes)                                                      │
 ```
 
 Het verschil met vandaag zit uitsluitend **tussen** de Flask-routes en de bestaande generatie-/repeat-functies: waar nu losse dicts en functieargumenten heen en weer gaan, zit straks één samenhangend, geëigenaarschapt domeinmodel — zonder dat de generator-laag, de mockup-laag, of de buitenkant van de API daar ooit iets van merkt.
+
+---
+
+## Architectuurstatus
+
+**BUILD-001A**
+Status: Foundation ✅
+
+Het DesignContext Model bestaat als zelfstandig domeinmodel.
+Nog volledig los van de bestaande pipeline.
+
+---
+
+**BUILD-001B**
+Status: Observation ✅
+
+DesignContext draait volledig mee naast de bestaande generatiepipeline.
+De bestaande analyse blijft leidend.
+Parallelle validatie controleert of beide modellen dezelfde ontwerpbeslissingen nemen.
+Er is nog geen enkele functionele invloed op de output.
+
+---
+
+Hiermee wordt BUILD-001 als afgerond beschouwd. Geen verdere uitbreidingen meer binnen BUILD-001. Nieuwe functionaliteit wordt vanaf nu ontwikkeld onder BUILD-002.

@@ -458,8 +458,14 @@ STYLE_GENERATORS = {
 }
 
 
-def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 100) -> str:
-    """Bouw de SVG voor één basistegel."""
+def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 100, kleurpalet_override: dict = None) -> str:
+    """Bouw de SVG voor één basistegel.
+
+    kleurpalet_override (BUILD-002): wanneer opgegeven, is dit de leidende
+    bron voor het kleurpalet (DesignContext.concept.kleurpalet) in plaats
+    van analysis["palette"]. analysis["palette"] blijft de expliciete
+    fallback wanneer geen override is meegegeven of deze leeg is.
+    """
     style = analysis.get("style", "geometric")
     p = analysis.get("_prompt", "")
     if style == "bauhaus" or "bauhaus" in p:
@@ -551,7 +557,7 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
         style = "botanical"
     if "medaillon" in p or "medallion" in p:
         style = "medallion"
-    palette = analysis.get("palette", {
+    palette = kleurpalet_override or analysis.get("palette", {
         "background": "#F5E6D3", "primary": "#C4753A",
         "secondary": "#8B4513", "accent1": "#D4A055", "accent2": "#F0C080"
     })
@@ -796,19 +802,24 @@ def api_generate():
             analysis['shapes'] = ['circle']
         analysis['_tile_cm'] = tile_cm
 
-        # DesignContext (BUILD-001, fase 2): puur additief en observationeel.
-        # Wordt hier alleen opgebouwd en gelogd -- de generatie hieronder
-        # blijft volledig op `analysis` gebaseerd, exact zoals voorheen. Een
-        # fout hierin mag de bestaande Dessinator nooit breken.
+        # DesignContext (BUILD-001 fase 2 + BUILD-002): het kleurpalet is de
+        # eerste ontwerpbeslissing die leidend is vanuit DesignContext (zie
+        # BUILD-002_VOORSTEL.md) -- alle overige velden (stijl, complexiteit)
+        # blijven puur observationeel, exact zoals in BUILD-001B. Een fout
+        # hierin mag de bestaande Dessinator nooit breken: bij elke
+        # onverwachte situatie valt kleurpalet_override terug op None, en
+        # build_tile_svg() gebruikt dan automatisch analysis["palette"].
+        _kleurpalet_override = None
         try:
             _design_context = design_context.bouw_context_uit_request(data, analysis)
             _afwijkingen = design_context.vergelijk_met_analysis(_design_context, analysis)
             for _afwijking in _afwijkingen:
                 print(f"[DesignContext-validatie] afwijking gevonden: {_afwijking}")
+            _kleurpalet_override = _design_context.concept.kleurpalet
         except Exception as _dc_fout:
             print(f"[DesignContext-validatie] fout tijdens opbouw/vergelijking (genegeerd): {_dc_fout}")
 
-        tile_svg = build_tile_svg(analysis, tile_size=400, motief_schaal=motief_schaal)
+        tile_svg = build_tile_svg(analysis, tile_size=400, motief_schaal=motief_schaal, kleurpalet_override=_kleurpalet_override)
 
         # Stap 3: Bouw all-over repeat
         repeat_svg = build_repeat_svg(tile_svg, analysis, tile_cm, repeat_type, dpi)
