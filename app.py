@@ -618,8 +618,16 @@ def build_tile_svg(analysis: dict, tile_size: int = 400, motief_schaal: int = 10
 
 def build_repeat_svg(tile_svg: str, analysis: dict,
                      tile_cm: int, repeat_type: str,
-                     dpi: int, cols: int = 3, rows: int = 3) -> str:
-    """Bouw een all-over repeat SVG met het opgegeven repeat-type."""
+                     dpi: int, cols: int = 3, rows: int = 3,
+                     repeat_type_override: str = None) -> str:
+    """Bouw een all-over repeat SVG met het opgegeven repeat-type.
+
+    repeat_type_override (BUILD-003): wanneer opgegeven, is dit de leidende
+    bron (DesignContext.productierealisatie.repeat_type) in plaats van de
+    repeat_type-parameter. repeat_type blijft de expliciete fallback
+    wanneer geen override is meegegeven.
+    """
+    repeat_type = repeat_type_override or repeat_type
     T = 400
     OVERLAP_SCALE = 1.006  # minieme tegel-overlap om haarlijn-naden te dichten
     bg_color = analysis.get('palette', {}).get('background', '#F5F5F5')
@@ -802,27 +810,33 @@ def api_generate():
             analysis['shapes'] = ['circle']
         analysis['_tile_cm'] = tile_cm
 
-        # DesignContext (BUILD-001 fase 2 + BUILD-002): het kleurpalet is de
-        # eerste ontwerpbeslissing die leidend is vanuit DesignContext (zie
-        # BUILD-002_VOORSTEL.md) -- alle overige velden (stijl, complexiteit)
-        # blijven puur observationeel, exact zoals in BUILD-001B. Een fout
-        # hierin mag de bestaande Dessinator nooit breken: bij elke
-        # onverwachte situatie valt kleurpalet_override terug op None, en
-        # build_tile_svg() gebruikt dan automatisch analysis["palette"].
+        # DesignContext (BUILD-001 fase 2 + BUILD-002 + BUILD-003): kleurpalet
+        # en repeat-type zijn de ontwerpbeslissingen die leidend zijn vanuit
+        # DesignContext -- kleurpalet voor build_tile_svg() (BUILD-002),
+        # repeat-type voor build_repeat_svg() (BUILD-003). Beide functies
+        # kennen elkaar niet rechtstreeks; de enige gedeelde bron is deze
+        # ene DesignContext-instantie. Alle overige velden (stijl,
+        # complexiteit) blijven puur observationeel, exact zoals in
+        # BUILD-001B. Een fout hierin mag de bestaande Dessinator nooit
+        # breken: bij elke onverwachte situatie vallen beide overrides
+        # terug op None, en gebruiken build_tile_svg()/build_repeat_svg()
+        # dan automatisch hun bestaande bron.
         _kleurpalet_override = None
+        _repeat_type_override = None
         try:
             _design_context = design_context.bouw_context_uit_request(data, analysis)
-            _afwijkingen = design_context.vergelijk_met_analysis(_design_context, analysis)
+            _afwijkingen = design_context.vergelijk_met_analysis(_design_context, analysis, data)
             for _afwijking in _afwijkingen:
                 print(f"[DesignContext-validatie] afwijking gevonden: {_afwijking}")
             _kleurpalet_override = _design_context.concept.kleurpalet
+            _repeat_type_override = _design_context.productierealisatie.repeat_type
         except Exception as _dc_fout:
             print(f"[DesignContext-validatie] fout tijdens opbouw/vergelijking (genegeerd): {_dc_fout}")
 
         tile_svg = build_tile_svg(analysis, tile_size=400, motief_schaal=motief_schaal, kleurpalet_override=_kleurpalet_override)
 
         # Stap 3: Bouw all-over repeat
-        repeat_svg = build_repeat_svg(tile_svg, analysis, tile_cm, repeat_type, dpi)
+        repeat_svg = build_repeat_svg(tile_svg, analysis, tile_cm, repeat_type, dpi, repeat_type_override=_repeat_type_override)
 
         # Stap 4: SVG als base64 voor preview in browser
         tile_b64 = base64.b64encode(tile_svg.encode()).decode()

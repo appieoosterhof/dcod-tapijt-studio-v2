@@ -304,6 +304,17 @@ def vertaal_analysis_naar_concept(analysis: dict[str, Any]) -> Concept:
     )
 
 
+def vertaal_data_naar_productierealisatie(data: dict[str, Any]) -> ProductieRealisatie:
+    """Leidt een ProductieRealisatie af uit de inkomende request-payload.
+
+    Repeat-type heeft nooit in de analysis-dict gezeten (het is puur een
+    gebruikerskeuze, niet iets wat analyse_prompt() bepaalt) -- dit wordt
+    daarom rechtstreeks uit `data` gehaald, dezelfde bron als de bestaande
+    `repeat_type = data.get("repeat_type", "full")` in api_generate().
+    """
+    return ProductieRealisatie(repeat_type=data.get("repeat_type", "full"))
+
+
 def bouw_context_uit_request(data: dict[str, Any], analysis: dict[str, Any]) -> DesignContext:
     """Bouwt een request-scoped DesignContext op uit de inkomende payload
     en de (na overrides) definitieve analysis-dict.
@@ -315,6 +326,7 @@ def bouw_context_uit_request(data: dict[str, Any], analysis: dict[str, Any]) -> 
     dc.ontwerpvisie = OntwerpVisie(vrije_tekst=data.get("prompt"))
     dc.ontwerpstrategie = vertaal_analysis_naar_strategie(analysis)
     dc.concept = vertaal_analysis_naar_concept(analysis)
+    dc.productierealisatie = vertaal_data_naar_productierealisatie(data)
     return dc
 
 
@@ -332,10 +344,20 @@ _VERGELIJKINGSVELDEN = [
     ("Concept", "concept.complexiteit", "complexity"),
 ]
 
+# Velden die niet uit analysis komen maar rechtstreeks uit de request-payload
+# (data) -- repeat_type heeft nooit in analysis gezeten (BUILD-003).
+_DATA_VERGELIJKINGSVELDEN = [
+    # (laag, DesignContext-pad, data-sleutel, default)
+    ("Productierealisatie", "productierealisatie.repeat_type", "repeat_type", "full"),
+]
 
-def vergelijk_met_analysis(dc: DesignContext, analysis: dict[str, Any]) -> list[dict[str, Any]]:
-    """Vergelijkt de kernvelden van DesignContext met de analysis-dict
-    waaruit hij is afgeleid, en rapporteert elke afwijking.
+
+def vergelijk_met_analysis(
+    dc: DesignContext, analysis: dict[str, Any], data: dict[str, Any] = None
+) -> list[dict[str, Any]]:
+    """Vergelijkt de kernvelden van DesignContext met de bron waaruit hij is
+    afgeleid (analysis en, indien opgegeven, de request-payload data), en
+    rapporteert elke afwijking.
 
     Omdat dc in dezelfde request, uit dezelfde analysis-snapshot, via
     vertaal_analysis_naar_*() is opgebouwd, hoort dit bij een correcte
@@ -346,7 +368,7 @@ def vergelijk_met_analysis(dc: DesignContext, analysis: dict[str, Any]) -> list[
 
     Returns:
         Een lijst met per afwijking: welke laag, welk veld, de waarde in
-        analysis, de waarde in DesignContext, en een aanwijzing voor de
+        de bron, de waarde in DesignContext, en een aanwijzing voor de
         vermoedelijke oorzaak.
     """
     afwijkingen = []
@@ -367,4 +389,21 @@ def vergelijk_met_analysis(dc: DesignContext, analysis: dict[str, Any]) -> list[
                     "elkaar tegen -- zie Fase 2b in het architectuurdocument."
                 ),
             })
+    if data is not None:
+        for laag, dc_pad, data_sleutel, default in _DATA_VERGELIJKINGSVELDEN:
+            obj_naam, veld_naam = dc_pad.split(".")
+            dc_waarde = getattr(getattr(dc, obj_naam), veld_naam)
+            data_waarde = data.get(data_sleutel, default)
+            if dc_waarde != data_waarde:
+                afwijkingen.append({
+                    "laag": laag,
+                    "veld": dc_pad,
+                    "analysis_waarde": data_waarde,
+                    "designcontext_waarde": dc_waarde,
+                    "vermoedelijke_oorzaak": (
+                        "DesignContext is mogelijk op een ander moment vastgelegd dan de "
+                        "request-payload, of er is een mapping-fout in "
+                        "vertaal_data_naar_productierealisatie() -- zie BUILD-003."
+                    ),
+                })
     return afwijkingen
