@@ -26,6 +26,7 @@ from modules_extra import generate_botanisch_master_svg
 from modules_extra import generate_japandi_svg
 from modules_extra import generate_lijnenspel_svg
 from modules_extra import generate_prism_overlay_svg
+import design_context
 
 app = Flask(__name__)
 CORS(app)
@@ -794,6 +795,19 @@ def api_generate():
             analysis['style'] = 'geometric'
             analysis['shapes'] = ['circle']
         analysis['_tile_cm'] = tile_cm
+
+        # DesignContext (BUILD-001, fase 2): puur additief en observationeel.
+        # Wordt hier alleen opgebouwd en gelogd -- de generatie hieronder
+        # blijft volledig op `analysis` gebaseerd, exact zoals voorheen. Een
+        # fout hierin mag de bestaande Dessinator nooit breken.
+        try:
+            _design_context = design_context.bouw_context_uit_request(data, analysis)
+            _afwijkingen = design_context.vergelijk_met_analysis(_design_context, analysis)
+            for _afwijking in _afwijkingen:
+                print(f"[DesignContext-validatie] afwijking gevonden: {_afwijking}")
+        except Exception as _dc_fout:
+            print(f"[DesignContext-validatie] fout tijdens opbouw/vergelijking (genegeerd): {_dc_fout}")
+
         tile_svg = build_tile_svg(analysis, tile_size=400, motief_schaal=motief_schaal)
 
         # Stap 3: Bouw all-over repeat
