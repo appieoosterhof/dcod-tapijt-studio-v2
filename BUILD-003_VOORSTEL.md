@@ -32,3 +32,11 @@ Bij succes is dit de eerste architectonische bevestiging dat meerdere onderdelen
 ## Rollback
 
 Twee onafhankelijke, losse regels: de bron van `repeat_type` in `build_repeat_svg()` terug naar de bestaande parameter, en het weglaten van de override-aanroep in `api_generate()`. Geen effect op de kleurpalet-migratie uit BUILD-002 — de twee migraties zijn volledig onafhankelijk terug te draaien.
+
+## Architectuurmijlpaal
+
+BUILD-003 is de eerste BUILD waarin meerdere onafhankelijke onderdelen van de Dessinator dezelfde DesignContext gebruiken zonder onderlinge afhankelijkheid.
+
+Dit bevestigt dat DesignContext daadwerkelijk de centrale bron van waarheid begint te worden.
+
+Daarmee is de architectuur succesvol bewezen voor meer dan één ontwerpbeslissing.
