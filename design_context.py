@@ -1,22 +1,29 @@
 """
-DesignContext-domeinmodel (BUILD-001A skelet + BUILD-001 fase 2).
+DesignContext-domeinmodel (BUILD-001A skelet + BUILD-001 fase 2 + BUILD-004).
 
 Implementeert de datastructuur van het DesignContext Model v1.0 zoals
 vastgelegd in DESIGN_CONTEXT_MODEL.md, plus (fase 2) de additieve
 vertaling vanuit de bestaande `analysis`-dictionary van app.py en de
-tijdelijke Parallelle Validatie die beide naast elkaar legt.
+tijdelijke Parallelle Validatie die beide naast elkaar legt, plus
+(BUILD-004) de Interpretatie-dataclass en de extra OntwerpVisie-/
+ProjectContext-velden die de Context Interpreter gebruikt.
 
-Deze module bevat geen AI-aanroepen en wijzigt niets aan
+Deze module bevat geen AI-aanroepen zelf en wijzigt niets aan
 analyse_prompt(), build_tile_svg(), build_repeat_svg() of de frontend.
 De vertaalfuncties hieronder LEZEN uitsluitend uit de bestaande
 `analysis`-dict; de generatie zelf blijft in app.py volledig op
 `analysis` gebaseerd, niet op DesignContext (zie
-BUILD-001_DESIGNCONTEXT_INTEGRATIE.md, fase 2 en 2a/2b).
+BUILD-001_DESIGNCONTEXT_INTEGRATIE.md, fase 2 en 2a/2b). De BUILD-004
+Context Interpreter (in context_interpreter.py) is eveneens volledig
+losstaand en wordt door niets in app.py aangeroepen.
 
 Rollback: app.py roept deze module in fase 2 puur observationeel aan
 (resultaat wordt alleen gelogd, nooit gebruikt voor de generatie zelf).
 Verwijderen van dit bestand plus de betreffende aanroep in app.py maakt
-dit volledig ongedaan.
+dit volledig ongedaan. De BUILD-004-uitbreidingen (Interpretatie,
+nieuwe velden) zijn zuiver additief en kunnen los teruggedraaid worden
+door context_interpreter.py te verwijderen; de extra velden blijven dan
+ongebruikt maar onschadelijk aanwezig.
 """
 
 from __future__ import annotations
@@ -39,7 +46,12 @@ class OntwerpVisie:
 
     Attributes:
         vrije_tekst: de oorspronkelijke, vrije verwoording van de wens.
-        sfeer: de beleving/sfeer die de architect nastreeft.
+        sfeer: de beleving/sfeer die de architect nastreeft (BUILD-004:
+            "gewenste beleving").
+        gewenste_identiteit: de identiteit die de ruimte/organisatie moet
+            uitstralen (BUILD-004).
+        ontwerpambitie: de ambitie of het gewenste niveau van het ontwerp
+            (BUILD-004).
         voorgestelde_interpretatie: de lezing van de visie zoals DCOD
             die voorstelt, voorafgaand aan bevestiging.
         bevestigd_door_architect: of de architect deze visie definitief
@@ -47,6 +59,8 @@ class OntwerpVisie:
     """
     vrije_tekst: Optional[str] = None
     sfeer: Optional[str] = None
+    gewenste_identiteit: Optional[str] = None
+    ontwerpambitie: Optional[str] = None
     voorgestelde_interpretatie: Optional[str] = None
     bevestigd_door_architect: bool = False
 
@@ -65,12 +79,19 @@ class ProjectContext:
         projecttype: het type project/branche (bv. kantoor, hotel).
         ruimtetype: de aard van de ruimte (representatief, functioneel,
             publiek-intensief, ...).
+        doelgroep: wie de ruimte gebruikt (BUILD-004).
+        functionele_eisen: functionele eisen aan de ruimte (BUILD-004).
+        bijzondere_randvoorwaarden: bijzondere randvoorwaarden van het
+            project (BUILD-004).
         gebruikscontext: hoe de ruimte in de praktijk gebruikt wordt.
         startconcept: het eventueel gekozen startconcept uit de
             inspiratie-flow.
     """
     projecttype: Optional[str] = None
     ruimtetype: Optional[str] = None
+    doelgroep: Optional[str] = None
+    functionele_eisen: Optional[str] = None
+    bijzondere_randvoorwaarden: Optional[str] = None
     gebruikscontext: Optional[str] = None
     startconcept: Optional[str] = None
 
@@ -209,6 +230,33 @@ class Ontwerpredenering:
 
 
 @dataclass
+class Interpretatie:
+    """
+    Eén voorgestelde interpretatie van een AI-component over een
+    specifiek gegeven (BUILD-004).
+
+    Architectuurprincipe: iedere AI-component binnen de Dessinator
+    produceert interpretaties, nooit waarheden (zie
+    BUILD-004_CONTEXT_INTERPRETER_TECHNISCH_ONTWERP.md, hoofdstuk 0).
+    Onzekerheid is daarom een eigenschap van de interpretatie zelf, niet
+    van het DesignContext-veld dat ze betreft -- de velden op
+    OntwerpVisie/ProjectContext bevatten zelf geen onzekerheidsstatus.
+
+    Attributes:
+        laag: welke laag van het DesignContext Model dit betreft
+            ("ontwerpvisie" of "projectcontext").
+        veld: de naam van het betreffende veld binnen die laag.
+        waarde: de voorgestelde waarde.
+        zekerheid: de mate van zekerheid van deze interpretatie (bv.
+            "hoog", "middel", "laag"), waar van toepassing.
+    """
+    laag: str
+    veld: str
+    waarde: str
+    zekerheid: Optional[str] = None
+
+
+@dataclass
 class DesignContext:
     """
     Centraal domeinobject van de Dessinator (DesignContext Model v1.0).
@@ -226,6 +274,11 @@ class DesignContext:
         materialisatie: laag 5, zie Materialisatie.
         productierealisatie: laag 6, zie ProductieRealisatie.
         ontwerpredenering: de doorlopende laag, zie Ontwerpredenering.
+        interpretaties: voorgestelde interpretaties van AI-componenten
+            (bv. de Context Interpreter, BUILD-004), elk met een eigen
+            mate van zekerheid. Dit is het record van de interpretaties
+            zelf; de resulterende waarden worden daarnaast in de
+            betreffende velden van ontwerpvisie/projectcontext gezet.
     """
     ontwerpvisie: OntwerpVisie = field(default_factory=OntwerpVisie)
     projectcontext: ProjectContext = field(default_factory=ProjectContext)
@@ -234,6 +287,7 @@ class DesignContext:
     materialisatie: Materialisatie = field(default_factory=Materialisatie)
     productierealisatie: ProductieRealisatie = field(default_factory=ProductieRealisatie)
     ontwerpredenering: Ontwerpredenering = field(default_factory=Ontwerpredenering)
+    interpretaties: list[Interpretatie] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Zet de volledige DesignContext om naar een platte dictionary."""
@@ -258,6 +312,7 @@ class DesignContext:
             materialisatie=Materialisatie(**data.get("materialisatie", {})),
             productierealisatie=ProductieRealisatie(**data.get("productierealisatie", {})),
             ontwerpredenering=Ontwerpredenering(**data.get("ontwerpredenering", {})),
+            interpretaties=[Interpretatie(**i) for i in data.get("interpretaties", [])],
         )
 
     def kopie(self) -> "DesignContext":
