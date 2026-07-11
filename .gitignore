@@ -23,3 +23,4 @@ app.py.bak*
 modules_extra*.bak*
 modules_extra_backup.py
 exports/
+static/scenes/

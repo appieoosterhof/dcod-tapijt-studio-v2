@@ -10,12 +10,15 @@ import time
 import base64
 import io
 import smtplib
+import tempfile
+import uuid
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 import base64
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
 import anthropic
 from PIL import Image, ImageDraw
 from modules_extra import generate_strepen_svg, generate_mozaiek_svg, generate_chevron_svg, generate_hexagoon_svg, generate_ogee_svg, generate_diamant_svg, generate_terrazzo_svg, generate_vrije_vormen_svg, generate_visgraat_svg, generate_dots_svg, generate_visgraat_lijn_svg, generate_bamboe_svg, generate_artdeco_svg, generate_chevron_bold_svg, generate_houndstooth_svg, generate_urban_plaid_svg, generate_aardlagen_svg
@@ -27,6 +30,7 @@ from modules_extra import generate_japandi_svg
 from modules_extra import generate_lijnenspel_svg
 from modules_extra import generate_prism_overlay_svg
 import design_context
+import scene_builder
 
 app = Flask(__name__)
 CORS(app)
@@ -703,6 +707,73 @@ def index():
 @app.route("/inspiratie")
 def inspiratie():
     return render_template("inspiratie.html")
+
+
+# ─── Scene Builder (BUILD-006) ────────────────────────────────────────────────
+# Volledig additief: eigen pagina, eigen /api/scenes-routes, raakt geen
+# bestaande route of functionaliteit aan. Zie scene_builder.py voor het
+# Scene-model zelf.
+
+_TOEGESTANE_EXTENSIES = {"jpg", "jpeg", "png", "webp"}
+
+
+@app.route("/scene-builder")
+def scene_builder_pagina():
+    return render_template("scene_builder.html")
+
+
+@app.route("/api/scenes", methods=["GET"])
+def api_scenes_lijst():
+    return jsonify({"scenes": scene_builder.lijst_scenes()})
+
+
+@app.route("/api/scenes", methods=["POST"])
+def api_scenes_aanmaken():
+    naam = (request.form.get("naam") or "Naamloze scene").strip() or "Naamloze scene"
+    bestand = request.files.get("achtergrond")
+    if not bestand or not bestand.filename:
+        return jsonify({"error": "Geen achtergrondafbeelding meegegeven."}), 400
+
+    extensie = os.path.splitext(secure_filename(bestand.filename))[1].lstrip(".").lower()
+    if extensie not in _TOEGESTANE_EXTENSIES:
+        return jsonify({"error": "Alleen jpg, jpeg, png of webp toegestaan."}), 400
+
+    tijdelijk_pad = os.path.join(tempfile.gettempdir(), f"scene_upload_{uuid.uuid4().hex}.{extensie}")
+    bestand.save(tijdelijk_pad)
+    try:
+        scene = scene_builder.maak_scene(naam, tijdelijk_pad, extensie)
+    except Exception as e:
+        return jsonify({"error": f"Kon scene niet aanmaken: {e}"}), 500
+
+    data = scene.to_dict()
+    data["achtergrond_url"] = scene.achtergrond_url()
+    return jsonify(data)
+
+
+@app.route("/api/scenes/<scene_id>", methods=["GET"])
+def api_scene_ophalen(scene_id):
+    try:
+        scene = scene_builder.laad_scene(scene_id)
+    except FileNotFoundError:
+        return jsonify({"error": "Scene niet gevonden."}), 404
+    data = scene.to_dict()
+    data["achtergrond_url"] = scene.achtergrond_url()
+    return jsonify(data)
+
+
+@app.route("/api/scenes/<scene_id>/calibratie", methods=["POST"])
+def api_scene_kalibratie(scene_id):
+    data = request.json or {}
+    polygon = data.get("polygon")
+    try:
+        scene = scene_builder.sla_kalibratie_op(scene_id, polygon)
+    except scene_builder.SceneValidatieFout as e:
+        return jsonify({"error": str(e)}), 400
+    except FileNotFoundError:
+        return jsonify({"error": "Scene niet gevonden."}), 404
+    data = scene.to_dict()
+    data["achtergrond_url"] = scene.achtergrond_url()
+    return jsonify(data)
 
 
 @app.route("/api/generate", methods=["POST"])

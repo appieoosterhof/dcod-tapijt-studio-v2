@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="nl"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DCOD Scene Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--forest:#0E2117;--forest-2:#14301F;--dcod:#003614;--sage:#A7C58E;--cream:#F5F1E8;--brass:#C9A24A;--line:rgba(245,241,232,.14);--muted:rgba(245,241,232,.55)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--forest);color:var(--cream);font-family:'Avenir Next','Avenir','Montserrat',system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:36px 24px 80px}
+h1{font-family:'Fraunces';font-weight:500;font-size:28px;margin-bottom:6px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:32px}
+.panel{background:var(--forest-2);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:28px}
+.panel h2{font-family:'Fraunces';font-weight:500;font-size:18px;margin-bottom:14px}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+input[type="text"]{width:100%;padding:10px 12px;background:var(--forest);border:1px solid var(--line);border-radius:8px;color:var(--cream);font-size:14px;margin-bottom:14px}
+input[type="file"]{color:var(--muted);font-size:13px;margin-bottom:14px}
+button{background:var(--sage);color:var(--dcod);border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer}
+button:hover{filter:brightness(1.08)}
+button.secundair{background:none;border:1px solid var(--line);color:var(--muted)}
+#status{font-size:13px;color:var(--sage);margin-top:10px;min-height:18px}
+#kalibratieBlok{display:none}
+#sceneAfbeelding{position:relative;width:100%;border-radius:10px;overflow:hidden;background:#222}
+#sceneAfbeelding img{display:block;width:100%;height:auto}
+.punt{position:absolute;width:18px;height:18px;border-radius:50%;border:2px solid #111;box-shadow:0 0 0 2px rgba(255,255,255,.6);cursor:grab;transform:translate(-9px,-9px)}
+.lijst{list-style:none}
+.lijst li{padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--cream);display:flex;justify-content:space-between}
+.lijst li:hover{background:rgba(255,255,255,.05)}
+.lijst .badge{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>DCOD Scene Builder</h1>
+  <p class="sub">BUILD-006 — eerste werkende versie. Eén scene, één vloeroppervlak, vier hoekpunten, handmatig.</p>
+
+  <div class="panel">
+    <h2>Nieuwe scene aanmaken</h2>
+    <label for="naamVeld">Naam</label>
+    <input type="text" id="naamVeld" placeholder="bv. Kantoor entree">
+    <label for="bestandVeld">Achtergrondafbeelding</label>
+    <input type="file" id="bestandVeld" accept=".jpg,.jpeg,.png,.webp">
+    <div><button id="aanmakenKnop">Scene aanmaken</button></div>
+    <div id="status"></div>
+  </div>
+
+  <div class="panel" id="kalibratieBlok">
+    <h2>Vloerhoeken vastleggen</h2>
+    <p class="sub">Sleep de vier punten (rood TL, groen TR, blauw BL, geel BR) naar de hoeken van de vloer.</p>
+    <div id="sceneAfbeelding"><img id="sceneImg" alt=""></div>
+    <div style="margin-top:14px;display:flex;gap:10px;">
+      <button id="opslaanKnop">Kalibratie opslaan</button>
+      <span id="kalibratieStatus" style="align-self:center;font-size:13px;color:var(--sage)"></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Bestaande scenes</h2>
+    <ul class="lijst" id="scenesLijst"></ul>
+  </div>
+</div>
+
+<script src="/static/js/scene_builder.js"></script>
+</body></html>
