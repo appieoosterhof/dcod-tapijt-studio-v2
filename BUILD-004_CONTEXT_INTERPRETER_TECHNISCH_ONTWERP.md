@@ -12,7 +12,7 @@ Dit volgt rechtstreeks uit de architectuurkeuze dat onzekerheid geen eigenschap 
 
 Dit principe is voor BUILD-004 vastgesteld bij de Context Interpreter, maar geldt als algemeen architectuurprincipe voor de gehele Dessinator: elke huidige en toekomstige AI-component (Context Interpreter, en later bijvoorbeeld Reasoning Engine, Material Planner, Pattern Planner) produceert output met de status "interpretatie", nooit met de status "waarheid" of "bevestigd". Alleen de architect — of, waar van toepassing, de gezamenlijke dialoog tussen architect en DCOD — kan een interpretatie tot een vastgestelde ontwerpbeslissing maken.
 
-*(Signalering: dit principe reikt verder dan BUILD-004 alleen en raakt daarmee mogelijk ook `SPEC-000_PROJECT_CHARTER.md` — met name hoofdstuk 6 (Architectuurprincipes) en 7 (Governance). Ik neem het hier uitsluitend op zoals gevraagd, binnen het technisch ontwerp van BUILD-004, en laat het aan jullie of dit ook in SPEC-000 wordt doorgevoerd.)*
+**Open architectuurvraag AV-002** (zie `OPEN_ARCHITECTUURVRAGEN.md`): of dit principe ook expliciet in `SPEC-000_PROJECT_CHARTER.md` wordt opgenomen, is aangemerkt als kandidaat voor een toekomstige SPEC-000-revisie (v1.1). Tot een expliciet besluit blijft SPEC-000 ongewijzigd.
 
 ## 1. Technische componenten
 
