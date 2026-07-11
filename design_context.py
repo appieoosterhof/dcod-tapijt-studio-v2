@@ -31,6 +31,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Optional
 
 
@@ -462,3 +463,102 @@ def vergelijk_met_analysis(
                     ),
                 })
     return afwijkingen
+
+
+# ─── BUILD-008: eigenaarschap, validatie en interfaces ──────────────────────
+#
+# Implementeert uitsluitend het reeds vastgestelde DesignContext Model
+# (DESIGN_CONTEXT_MODEL.md) en het technisch ontwerp BUILD-008. Elke laag
+# behoudt zijn EIGEN eigenaarschap en EIGEN wijzigingsregel -- er is bewust
+# GEEN uniforme status over de lagen heen. Zuiver additief: raakt geen
+# bestaande dataclass, geen vertaalfunctie, en niets in de pipeline (app.py).
+#
+# Status per laag, conform het model (samenvatting):
+#   laag 1 Ontwerpvisie          : voorlopig -> bevestigd -> onaantastbaar
+#                                  (veld: bevestigd_door_architect)
+#   laag 2 Project-/Ruimtecontext: architect levert de feiten, DCOD structureert
+#   laag 3 Ontwerpstrategie       : "in ontwikkeling" / "vastgesteld" (veld: status)
+#   laag 4 Concept                : gedeeld, iteratief bijstuurbaar (veld: status)
+#   laag 5 Materialisatie         : gedeeld, iteratief bijstuurbaar (veld: status)
+#   laag 6 Productierealisatie     : DCOD-vakkennis
+
+
+class Eigenaar(str, Enum):
+    """De eigenaarschapsvormen die het model per laag toekent.
+
+    Uitsluitend de bestaande begrippen uit DESIGN_CONTEXT_MODEL.md; geen
+    nieuwe terminologie.
+    """
+
+    ARCHITECT = "architect"
+    GEZAMENLIJK = "gezamenlijk"
+    GEDEELD = "gedeeld"
+    DCOD = "dcod"
+
+
+# Eigenaar per laag, exact conform DESIGN_CONTEXT_MODEL.md. Laag 2
+# (projectcontext): het model legt het eigenaarschap van de feiten bij de
+# architect ("de Architect levert de feiten"); DCOD structureert/categoriseert
+# die feiten, maar wijzigt ze niet.
+EIGENAARSCHAP: dict[str, Eigenaar] = {
+    "ontwerpvisie": Eigenaar.ARCHITECT,
+    "projectcontext": Eigenaar.ARCHITECT,
+    "ontwerpstrategie": Eigenaar.GEZAMENLIJK,
+    "concept": Eigenaar.GEDEELD,
+    "materialisatie": Eigenaar.GEDEELD,
+    "productierealisatie": Eigenaar.DCOD,
+}
+
+
+def eigenaar_van(laag: str) -> Eigenaar:
+    """Geeft de eigenaar van een DesignContext-laag terug.
+
+    Interface (BUILD-008 §5) waarmee een latere component kan opvragen wie
+    een laag mag bevestigen, zonder die kennis zelf te hardcoden.
+    """
+    return EIGENAARSCHAP[laag]
+
+
+def mag_bevestigen(laag: str, door: Eigenaar) -> bool:
+    """Alleen de eigenaar van een laag mag haar bevestigen.
+
+    Implementeert de validatieregel uit BUILD-008 §3 / AB-008: componenten
+    stellen voor, bevestigen nooit; uitsluitend de eigenaar (uiteindelijk de
+    architect, of de gezamenlijke dialoog) bevestigt.
+
+    `door` is de eigenaarschaps*vorm*, niet een individuele actor. Voor de
+    gedeelde/gezamenlijke lagen betekent dit dat bevestiging namens de
+    gezamenlijke dialoog tussen architect en DCOD verloopt: de aanroeper geeft
+    Eigenaar.GEDEELD door voor Concept/Materialisatie en Eigenaar.GEZAMENLIJK
+    voor Ontwerpstrategie -- niet een enkele partij.
+
+    Raist KeyError bij een onbekende laagnaam (consistent met eigenaar_van()),
+    zodat een typefout zichtbaar wordt in plaats van stilzwijgend als False te
+    worden afgehandeld.
+    """
+    return eigenaar_van(laag) == door
+
+
+def valideer(dc: DesignContext) -> list[dict[str, str]]:
+    """Controleert de model-invarianten van een DesignContext, zonder te muteren.
+
+    Per laag conform het model (BUILD-008 §3), geen uniforme statuslogica.
+    Retourneert een lijst met overtredingen -- een lege lijst betekent geldig.
+    Analoog aan vergelijk_met_analysis(): dit rapporteert, het corrigeert niet,
+    en wordt (net als de rest van deze module) door niets in de pipeline
+    aangeroepen.
+    """
+    overtredingen: list[dict[str, str]] = []
+
+    # Laag 1 -- onaantastbaarheidsregel: een bevestigde Ontwerpvisie is het
+    # vaste anker en mag niet leeg zijn.
+    ov = dc.ontwerpvisie
+    if ov.bevestigd_door_architect and not (
+        ov.vrije_tekst or ov.voorgestelde_interpretatie
+    ):
+        overtredingen.append({
+            "laag": "ontwerpvisie",
+            "regel": "een bevestigde Ontwerpvisie mag niet leeg zijn (onaantastbaar anker)",
+        })
+
+    return overtredingen
