@@ -1,5 +1,7 @@
 # BUILD-019 — Integratie Design Brain in de bestaande Flask-app: technisch ontwerp (TD-008)
 
+> **Geamendeerd door BUILD-020** (`BUILD-020_TD-008_AMENDEMENT_LAAG2_ONTWERPSTRATEGIE.md`): de orkestratie-keten (§2) en de importlijst (Besluit B) worden aangevuld met de **laag-2-projectie** (Context Interpreter) en de **Ontwerpstrategie-stap** (BUILD-009) vóór het Concept. Zie BUILD-020 voor de geamendeerde keten; de rest van dit document blijft gelden.
+
 **Status:** technisch ontwerp, ter review. Geen programmacode. Beschrijft uitsluitend **hoe** de integratie wordt gerealiseerd; het **wat** ligt vast in BUILD-019 en mag niet wijzigen. Geen nieuwe architectuurcomponent — een dunne, additieve ontsluitingslaag die de bestaande Design Brain-componenten aanstuurt.
 
 **Normatief:** BUILD-019 (functioneel), BUILD-007 (workflow), BUILD-017 (Conversation Planner), BUILD-018 (SVG Planner ↔ pipeline, met de lui-import van `build_tile_svg`), AB-005/AR-004/AR-005, en het bestaande `app.py`/`scene_builder.py`/`design_context.py`.

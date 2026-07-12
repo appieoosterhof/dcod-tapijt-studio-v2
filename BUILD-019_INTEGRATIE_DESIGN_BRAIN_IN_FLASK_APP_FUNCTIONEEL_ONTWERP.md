@@ -1,5 +1,7 @@
 # BUILD-019 — Integratie Design Brain in de bestaande Flask-app: functioneel ontwerp
 
+> **Geamendeerd door BUILD-020**: de workflow omvat vóór het Concept ook de **laag-2-projectie** (Project-/Ruimtecontext, via de Context Interpreter) en de **Ontwerpstrategie-stap** (laag 3, BUILD-009) — beide reeds bestaande componenten, uitsluitend georkestreerd. Zie `BUILD-020_TD-008_AMENDEMENT_LAAG2_ONTWERPSTRATEGIE.md`.
+
 **Status:** functioneel ontwerp, gereed voor architectuurreview (VR). Beschrijft uitsluitend **wat** de integratie doet, niet **hoe**. Geen nieuwe architectuurcomponent — een **dunne, additieve ontsluitingslaag** (HTTP-endpoints) die de reeds bestaande Design Brain-componenten aanstuurt. Verankerd in BUILD-007 (de toekomstige workflow), BUILD-017 (Conversation Planner) en BUILD-018 (SVG Planner ↔ productiepipeline).
 
 **Uitgangspunt:** de volledige Design Brain-keten (Conversation Planner → Context Interpreter → Reasoning Engine → Material Planner → Pattern Planner → SVG Planner (productiepipeline) → Floor Visualization Engine → Design Transfer Package) bestaat, is gereviewd en losstaand geborgd, maar is **nog niet ontsloten** in de app. BUILD-019 ontsluit die keten als een **tweede, additieve ingang** ("Ontwerp zelf met AI", `CLAUDE.md`), **náást** de ongewijzigde bestaande `/api/generate`-Dessinator.
