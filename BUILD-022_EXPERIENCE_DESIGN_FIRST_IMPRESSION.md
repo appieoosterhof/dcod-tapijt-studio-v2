@@ -32,9 +32,11 @@ De boodschap in tien seconden, zonder één technisch woord: *dit begrijpt ontwe
 
 *Geen* API-sleutelveld, *geen* menubalk vol opties, *geen* "Start". De drempel is één zin typen.
 
-**Microcopy (hero):**
-> **"Elke ruimte vraagt om een eigen vloer."**
-> *Vertel me over de uwe — en we ontwerpen hem samen.*
+**Microcopy (hero) — vastgesteld (aanvulling merkbeleving):**
+> **"Elke ruimte verdient een verhaal."**
+> *Vertel ons uw idee. Samen ontwerpen we een vloer die uw verhaal compleet maakt.*
+
+**Positionering (belangrijk):** de vloer is **niet** *het verhaal*, maar het element dat het verhaal van de ruimte **compleet maakt**. Zo blijft de vloer onderdeel van het totaalontwerp en wordt de rol van de architect gerespecteerd. De hero vormt de natuurlijke opening van de merkbelofte: *"Elke ruimte verdient een verhaal. → Samen ontwerpen we een vloer die uw verhaal compleet maakt. → Niet zomaar een vloer, een verhaal!"*
 
 ---
 

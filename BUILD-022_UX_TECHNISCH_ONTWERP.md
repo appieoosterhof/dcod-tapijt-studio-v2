@@ -77,8 +77,8 @@ De **conversatieregels van de Dessinator komen uit de backend (de CP) en worden 
 
 | Plek | Copy (indicatief) |
 |---|---|
-| **Hero-kop** | *"Elke ruimte vertelt een verhaal. Laten we die van u in de vloer leggen."* |
-| **Hero-sub** | *"Beschrijf een gevoel — en zie het verschijnen in uw eigen ruimte."* |
+| **Hero-kop** | *"Elke ruimte verdient een verhaal."* (vastgesteld — de vloer *maakt* het verhaal compleet, ís niet het verhaal) |
+| **Hero-sub** | *"Vertel ons uw idee. Samen ontwerpen we een vloer die uw verhaal compleet maakt."* |
 | **Eerste zin / placeholder** | *"Waar droomt deze ruimte van? Bijv. een rustige, warme lobby…"* |
 | **Tussenzinnen (frame)** | zachte bijschriften bij onthullingen: *"Dit is de sfeer die uw woorden opriepen."* / *"Uw vloer, in uw ruimte."* |
 | **Bevestigingen (knoppen)** | *"Ja, deze kant op"* · *"Dit klopt"* · *"Deze kies ik"* · *"Dit is 'm — geef door aan DCOD"* |
