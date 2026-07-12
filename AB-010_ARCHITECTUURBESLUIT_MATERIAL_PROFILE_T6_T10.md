@@ -1,6 +1,6 @@
 # AB-010 — Concept-Architectuurbesluit: Material Profile (T6) en Material Planner ↔ Material Profile (T10)
 
-**Status:** VASTGESTELD — architectuurbesluit. De agendapunten **T6** (identiteit Material Profile) en **T10** (relatie Material Planner ↔ Material Profile) zijn hiermee formeel afgesloten. Geen technische implementatie. Verankerd in BUILD-007, AB-002, AB-006, AB-009, DESIGN_CONTEXT_MODEL, DESIGN_BRAIN en BUILD-012.
+**Status:** VASTGESTELD — architectuurbesluit; **geamendeerd via AB-010A** (K10-A invoer-preconditie: "beschikbare Floor Designs" → "het bevestigde Floor Design", na TR-003). De agendapunten **T6** (identiteit Material Profile) en **T10** (relatie Material Planner ↔ Material Profile) zijn hiermee formeel afgesloten. Geen technische implementatie. Verankerd in BUILD-007, AB-002, AB-006, AB-009, DESIGN_CONTEXT_MODEL, DESIGN_BRAIN en BUILD-012.
 
 **Kern:** Material Profile wordt vastgesteld naar hetzelfde, reeds bekrachtigde model als Floor Design (AB-006/AB-009). Er wordt **geen nieuwe component** geïntroduceerd — Material Planner en Material Profile bestaan al als begrip.
 
@@ -29,7 +29,7 @@
 
 ## 3. T10 — Relatie Material Planner ↔ Material Profile
 
-- **K10-A — Verantwoordelijkheid Material Planner.** De Material Planner vormt materiaalvoorstellen op basis van de beschikbare Floor Designs en het bevestigde Concept, motiveert elk voorstel, en bevestigt nooit (BUILD-012).
+- **K10-A — Verantwoordelijkheid Material Planner.** De Material Planner vormt materiaalvoorstellen op basis van **het bevestigde Floor Design** en het bevestigde Concept, motiveert elk voorstel, en bevestigt nooit (BUILD-012). *(Amendement AB-010A, na TR-003:)* de Material Planner start **uitsluitend nadat één Floor Design door de architect is bevestigd**, en werkt **uitsluitend met dát bevestigde Floor Design**; hierdoor blijft de sequentiële architectuur volledig consistent met het gate-patroon (elke stap start op een bevestigd upstream-object; BUILD-007).
 - **K10-B — Voorstel = voorgesteld Material Profile.** Een **materiaalvoorstel is een Material Profile met status "Voorgesteld".** Hiermee zijn de twee begrippen verzoend: "materiaalvoorstel" (BUILD-012) en "Material Profile" (BUILD-007) beschrijven hetzelfde resultaat-object in respectievelijk de status Voorgesteld en (na bevestiging) Bevestigd.
 - **K10-C — Verhouding component ↔ resultaat.** De **Material Planner is de component** (producent); het **Material Profile is het resultaat-object**. Dit is dezelfde component-↔-resultaat-verhouding als Reasoning Engine ↔ Floor Design (AB-009).
 - **K10-D — Einde van de verantwoordelijkheid.** De verantwoordelijkheid van de Material Planner eindigt bij het opleveren van één of meer voorgestelde Material Profiles (buiten de DesignContext, met motivering). Hij bevestigt niet en voert geen downstream-verwerking uit.
