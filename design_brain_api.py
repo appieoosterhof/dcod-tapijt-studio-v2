@@ -40,6 +40,7 @@ from conversation_planner import ConversationPlanner
 from context_interpreter import interpreteer_context, pas_interpretaties_toe
 from ontwerpstrategie_stap import OntwerpStrategieStap
 from ontwerpstrategie_capability import maak_ontwerpstrategie_redeneerfunctie
+from conceptvorming_capability import maak_conceptvorming_redeneerfunctie
 from reasoning_engine import ReasoningEngine, FloorDesign
 from material_planner import MaterialPlanner, MaterialProfile
 from pattern_planner import PatternPlanner, PatternProfile
@@ -370,7 +371,13 @@ def concept(gesprek_id, toestand):
     # `aanpak`; deze gate borgt de gezamenlijke vaststelling van laag 3.
     if toestand.design_context.ontwerpstrategie.status != OntwerpStrategieStap.STATUS_VASTGESTELD:
         return _fout("Stel eerst de Ontwerpstrategie vast.", 409)
-    resultaat = ReasoningEngine().vorm_concept(toestand.design_context)
+    # IMP-016: de Concept-reasoning boundary (Fase 1) is nu configuratie-gestuurd
+    # (productie of deterministische placeholder). Alleen `conceptvorming` wordt
+    # geïnjecteerd; Floor Design-generatie (Fase 2) blijft de placeholder. De
+    # sleutel is uitsluitend serverconfig (AB-012, _ai_sleutel); component/
+    # orchestratie ongewijzigd.
+    engine = ReasoningEngine(conceptvorming=maak_conceptvorming_redeneerfunctie(_ai_sleutel()))
+    resultaat = engine.vorm_concept(toestand.design_context)
     if not resultaat.geslaagd:
         return _signalering(resultaat.signaleringen)
     _sla_op(gesprek_id, toestand)  # dc.concept (voorgesteld) + Ontwerpredenering

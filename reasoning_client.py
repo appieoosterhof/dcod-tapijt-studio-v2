@@ -15,7 +15,8 @@ valt gecontroleerd terug op haar deterministische placeholder (AB-012).
 from __future__ import annotations
 
 import json
-from typing import Protocol
+import os
+from typing import Callable, Optional, Protocol
 
 # Modelkeuze conform de rest van de Dessinator (CLAUDE.md). Uitsluitend hier en
 # in de adapter; capabilities noemen nooit een model of leverancier.
@@ -75,3 +76,44 @@ def extraheer_json(tekst: str) -> dict:
     if not isinstance(data, dict):
         raise ValueError("Modelantwoord is geen JSON-object.")
     return data
+
+
+# ─── Gedeelde providerselectie (configuratie-gestuurd) ──────────────────────────
+# Eén configuratieschakelaar voor álle Reasoning Capabilities (IMP-015 e.v.): één
+# env-variabele bepaalt of de Design Brain productie-reasoning of de
+# deterministische placeholders gebruikt. Zo staat de leverancier-/moduskeuze op
+# één plek (Configuratie-eis) en delen alle capabilities hetzelfde mechanisme.
+
+MODUS_PLACEHOLDER = "placeholder"
+MODUS_PRODUCTIE = "productie"
+CONFIG_ENV = "DCOD_REASONING_MODUS"
+
+
+def modus_uit_config(modus: Optional[str] = None) -> str:
+    """De actieve reasoning-modus: expliciet meegegeven, anders uit env
+    `DCOD_REASONING_MODUS` (default 'placeholder')."""
+    if modus is None:
+        modus = os.environ.get(CONFIG_ENV) or MODUS_PLACEHOLDER
+    return modus.strip().lower()
+
+
+def kies_redeneerfunctie(
+    api_sleutel: str,
+    placeholder_functie: Callable,
+    bouw_productie: Callable[[str], Callable],
+    modus: Optional[str] = None,
+) -> Callable:
+    """Gedeelde configuratie-factory voor een reasoning boundary.
+
+    - modus 'productie' mét geldige serversleutel → `bouw_productie(sleutel)`
+      (de productie-reasoner);
+    - in alle overige gevallen (incl. 'productie' zónder sleutel) → de
+      meegegeven deterministische `placeholder_functie`.
+
+    De sleutel komt van de aanroeper (integratielaag, `_ai_sleutel()` — AB-012:
+    uitsluitend serverconfiguratie). Deze functie leest zelf nooit de request of
+    de sleutel; enkel de modus (env), op één plek voor alle capabilities.
+    """
+    if modus_uit_config(modus) == MODUS_PRODUCTIE and (api_sleutel or "").strip():
+        return bouw_productie(api_sleutel.strip())
+    return placeholder_functie
