@@ -1,17 +1,17 @@
 """
-BUILD-010 -- Reasoning Engine (Fase 1: Conceptvorming).
+BUILD-010 -- Reasoning Engine (Fase 1: Conceptvorming; Fase 2: Floor Design-generatie).
 
 Implementeert de Reasoning Engine conform de goedgekeurde ontwerpbaseline
-(BUILD-010 functioneel + technisch/TD-001). Deze implementatiestap betreft
-UITSLUITEND:
+(BUILD-010 functioneel + technisch/TD-001, en BUILD-011 voor Fase 2). Deze
+module realiseert:
 
   * de interne module-structuur van de Reasoning Engine;
-  * Fase 1 -- Conceptvorming;
-  * de technische infrastructuur waarop Fase 2 (Floor Design-generatie) later
-    aansluit.
+  * Fase 1 -- Conceptvorming (IMP-001);
+  * Fase 2 -- Floor Design-generatie (IMP-002, conform BUILD-011).
 
-Fase 2, de planners, materiaal-/patroonkeuze, SVG-generatie en visualisatie
-zijn hier NIET geimplementeerd (zie BUILD-011 en de downstream-componenten).
+De planners (Material/Pattern/SVG), materiaal-/patroonkeuze, SVG-generatie,
+visualisatie, export en persistentie zijn hier NIET geimplementeerd (zie de
+downstream-componenten).
 
 Kernprincipes (technisch geborgd, conform AB-008/AB-001/DESIGN_BRAIN):
   * de component STELT VOOR, bevestigt nooit;
@@ -25,11 +25,12 @@ Fase-gate (TD-001, deterministisch):
   * na Fase 1 schrijft deze component uitsluitend Concept.status = "voorgesteld";
   * de waarde "bevestigd" wordt uitsluitend door de architect toegekend --
     deze component leest die status alleen en bevestigt nooit;
-  * Fase 2 (later) mag uitsluitend starten wanneer Concept.status == "bevestigd".
+  * Fase 2 mag uitsluitend starten wanneer Concept.status == "bevestigd".
 """
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
@@ -85,6 +86,65 @@ class ConceptResultaat:
         return self.concept is not None
 
 
+# ─── Fase 2: Floor Design-generatie (BUILD-011) ─────────────────────────────
+#
+# Floor Designs staan volledig BUITEN de DesignContext. De Floor Design
+# reasoning boundary kent DesignContext noch registratie; zij ontvangt een
+# platte invoer (het bevestigde Concept + onderbouwende context) en retourneert
+# een lijst voorstel-dicts, elk met "ontwerprichting" en "motivering".
+
+FloorDesignRedeneerFunctie = Callable[[dict], list]
+
+
+def placeholder_floor_design_generatie(invoer: dict) -> list:
+    """Deterministische placeholder voor de Fase 2-reasoning boundary.
+
+    Geen LLM-aanroep, geen promptteksten. Leidt uit het bevestigde Concept een
+    of meer ontwerprichtingen af, zodat de keten preconditie -> boundary ->
+    binnen-Concept-validatie -> regeneratie testbaar is zonder AI.
+    """
+    stijl = invoer.get("stijlfamilie") or "de gekozen stijl"
+    complexiteit = invoer.get("complexiteit") or "medium"
+    return [
+        {
+            "ontwerprichting": f"{stijl}, ingetogen uitgewerkt ({complexiteit})",
+            "motivering": f"Directe, rustige uitwerking van het bevestigde Concept ({stijl}).",
+        },
+        {
+            "ontwerprichting": f"{stijl}, expressief uitgewerkt ({complexiteit})",
+            "motivering": f"Zelfde Concept ({stijl}), met meer contrast als alternatieve richting.",
+        },
+    ]
+
+
+@dataclass
+class FloorDesign:
+    """Technisch datamodel van een voorgesteld Floor Design -- BUITEN de
+    DesignContext (BUILD-011/AB-006). Draagt de motivering in het object zelf en
+    een herkomst-referentie naar het bevestigde Concept (traceerbaarheid)."""
+
+    identifier: str
+    ontwerprichting: str
+    concept_herkomst: dict
+    motivering: str
+    status: str = "Voorgesteld"
+    kwaliteitsinformatie: dict = field(default_factory=dict)
+
+
+@dataclass
+class FloorDesignResultaat:
+    """Technische returnvorm: één of meer Floor Designs, of uitsluitend
+    signaleringen wanneer Fase 2 niet mag of kan slagen."""
+
+    floor_designs: list = field(default_factory=list)
+    signaleringen: list[str] = field(default_factory=list)
+    kwaliteitsinformatie: dict = field(default_factory=dict)
+
+    @property
+    def geslaagd(self) -> bool:
+        return len(self.floor_designs) > 0
+
+
 class ReasoningEngine:
     """Publieke component (BUILD-010).
 
@@ -94,18 +154,24 @@ class ReasoningEngine:
     "voorgesteld" weg en registreert het "waarom" in de Ontwerpredenering.
     De component bevestigt nooit en muteert laag 1-3 niet.
 
-    Fase 2 (Floor Design-generatie) is nog niet geimplementeerd; deze klasse
-    vormt er de infrastructuur voor (dezelfde boundary-/validatie-/resultaat-
-    patronen, en de deterministische statusgate `Concept.status == "bevestigd"`).
+    Fase 2 -- `genereer_floor_designs(dc)` -- genereert, uitsluitend bij een
+    bevestigd Concept, één of meer Floor Designs BUITEN de DesignContext
+    (BUILD-011); het Concept wordt gelezen, nooit gewijzigd of bevestigd.
     """
 
     STATUS_VOORGESTELD = "voorgesteld"
     STATUS_BEVESTIGD = "bevestigd"
     _VERPLICHTE_CONCEPT_VELDEN = ("stijlfamilie", "kleurpalet", "complexiteit", "motiefschaal")
+    MAX_REGENERATIE_POGINGEN = 3
 
-    def __init__(self, conceptvorming: RedeneerFunctie = placeholder_conceptvorming) -> None:
-        # De Fase 1-reasoning boundary is injecteerbaar; standaard de placeholder.
+    def __init__(
+        self,
+        conceptvorming: RedeneerFunctie = placeholder_conceptvorming,
+        floor_design_generatie: FloorDesignRedeneerFunctie = placeholder_floor_design_generatie,
+    ) -> None:
+        # Beide reasoning boundaries zijn injecteerbaar; standaard de placeholders.
         self._conceptvorming = conceptvorming
+        self._floor_design_generatie = floor_design_generatie
 
     # ── Fase 1: Conceptvorming (orkestratie) ──────────────────────────────────
     def vorm_concept(self, dc: DesignContext) -> ConceptResultaat:
@@ -240,3 +306,142 @@ class ReasoningEngine:
                 "Geen ontwerpstrategie aanwezig om het Concept aan te toetsen."
             )
         return signaleringen, kwaliteitsinformatie
+
+    # ── Fase 2: Floor Design-generatie (orkestratie, BUILD-011) ───────────────
+    def genereer_floor_designs(self, dc: DesignContext) -> FloorDesignResultaat:
+        """Orkestreert Fase 2: preconditie -> boundary -> binnen-Concept-validatie
+        -> (gelimiteerde) regeneratie -> verpakken.
+
+        Leest de DesignContext uitsluitend; Floor Designs staan BUITEN de
+        DesignContext. Wijzigt het Concept nooit en bevestigt nooit.
+        """
+        # 1. Preconditie: uitsluitend starten bij een bevestigd, volledig Concept.
+        signaleringen = self._valideer_concept_bevestigd(dc)
+        if signaleringen:
+            return FloorDesignResultaat(signaleringen=signaleringen)
+
+        invoer = self._verzamel_concept_invoer(dc)
+        herkomst = self._concept_snapshot(dc.concept)
+        laatste_afkeur: list[str] = []
+
+        # 2-4. Boundary + binnen-Concept-validatie, met gelimiteerde regeneratie
+        #      (TD-001 §5: afgekeurde Floor Designs -> uitsluitend Fase 2 opnieuw;
+        #      het bevestigde Concept blijft ongewijzigd behouden).
+        for poging in range(1, self.MAX_REGENERATIE_POGINGEN + 1):
+            try:
+                voorstellen = self._floor_design_generatie(invoer)
+            except Exception as fout:  # boundary is injecteerbaar en onbekend
+                return FloorDesignResultaat(
+                    signaleringen=[f"Technische fout in de reasoning boundary: {fout}"]
+                )
+
+            geldig, laatste_afkeur = self._filter_binnen_concept(voorstellen)
+            if geldig:
+                floor_designs = [
+                    self._bouw_floor_design(v, herkomst, poging) for v in geldig
+                ]
+                return FloorDesignResultaat(
+                    floor_designs=floor_designs,
+                    kwaliteitsinformatie={
+                        "pogingen": poging,
+                        "aantal": len(floor_designs),
+                        "afgekeurd": len(laatste_afkeur),
+                    },
+                )
+
+        # 5. Regeneratielimiet bereikt -> geen geldig resultaat, geen mutatie.
+        return FloorDesignResultaat(
+            signaleringen=(
+                [
+                    f"Geen Floor Design bleef binnen het bevestigde Concept na "
+                    f"{self.MAX_REGENERATIE_POGINGEN} pogingen."
+                ]
+                + laatste_afkeur
+            ),
+            kwaliteitsinformatie={"pogingen": self.MAX_REGENERATIE_POGINGEN},
+        )
+
+    # ── Fase 2: preconditie (deterministische statusgate) ─────────────────────
+    def _valideer_concept_bevestigd(self, dc: DesignContext) -> list[str]:
+        signaleringen: list[str] = []
+        if dc.concept.status != self.STATUS_BEVESTIGD:
+            signaleringen.append(
+                'Concept is niet bevestigd; Fase 2 start niet '
+                '(vereist Concept.status == "bevestigd").'
+            )
+            return signaleringen  # zonder bevestigd Concept geen verdere controles
+        for veld in self._VERPLICHTE_CONCEPT_VELDEN:
+            waarde = getattr(dc.concept, veld)
+            if waarde is None or (isinstance(waarde, str) and not waarde.strip()):
+                signaleringen.append(f"Bevestigd Concept mist verplicht veld: {veld}.")
+        return signaleringen
+
+    # ── Fase 2: invoer voor de boundary ───────────────────────────────────────
+    @staticmethod
+    def _verzamel_concept_invoer(dc: DesignContext) -> dict:
+        c = dc.concept
+        ov = dc.ontwerpvisie
+        pc = dc.projectcontext
+        return {
+            "stijlfamilie": c.stijlfamilie,
+            "kleurpalet": c.kleurpalet,
+            "complexiteit": c.complexiteit,
+            "motiefschaal": c.motiefschaal,
+            "sfeer": ov.sfeer,
+            "projecttype": pc.projecttype,
+            "ruimtetype": pc.ruimtetype,
+        }
+
+    # ── Fase 2: herkomst-referentie (traceerbaarheid Concept -> Floor Design) ──
+    @staticmethod
+    def _concept_snapshot(concept: Concept) -> dict:
+        return {
+            "stijlfamilie": concept.stijlfamilie,
+            "kleurpalet": concept.kleurpalet,
+            "complexiteit": concept.complexiteit,
+            "motiefschaal": concept.motiefschaal,
+            "status": concept.status,
+        }
+
+    # ── Fase 2: binnen-Concept-validatie ──────────────────────────────────────
+    @staticmethod
+    def _filter_binnen_concept(voorstellen) -> tuple[list, list[str]]:
+        """Scheidt geldige voorstellen van afgekeurde. Een voorstel is geldig
+        wanneer het structureel volledig is (ontwerprichting + motivering) en
+        niet expliciet aangeeft het Concept te verlaten (`verlaat_concept`). De
+        semantische toets "aantoonbaar binnen" wordt door de model-specifieke
+        boundary geleverd; deze laag borgt de structurele geldigheid en de
+        expliciete grens, en wijst ongeldige voorstellen af."""
+        geldig: list = []
+        afgekeurd: list[str] = []
+        if not isinstance(voorstellen, list):
+            return [], ["Reasoning boundary gaf geen lijst voorstellen terug."]
+        for i, v in enumerate(voorstellen):
+            if not isinstance(v, dict):
+                afgekeurd.append(f"Voorstel {i} is geen geldig object.")
+                continue
+            ontwerprichting = v.get("ontwerprichting")
+            motivering = v.get("motivering")
+            if not (isinstance(ontwerprichting, str) and ontwerprichting.strip()):
+                afgekeurd.append(f"Voorstel {i} mist een ontwerprichting.")
+                continue
+            if not (isinstance(motivering, str) and motivering.strip()):
+                afgekeurd.append(f"Voorstel {i} mist een motivering.")
+                continue
+            if v.get("verlaat_concept") is True:
+                afgekeurd.append(f"Voorstel {i} verlaat het bevestigde Concept.")
+                continue
+            geldig.append(v)
+        return geldig, afgekeurd
+
+    # ── Fase 2: Floor Design-object bouwen (buiten de DesignContext) ──────────
+    @staticmethod
+    def _bouw_floor_design(voorstel: dict, herkomst: dict, poging: int) -> FloorDesign:
+        return FloorDesign(
+            identifier=str(uuid.uuid4()),
+            ontwerprichting=voorstel["ontwerprichting"],
+            concept_herkomst=herkomst,
+            motivering=voorstel["motivering"],
+            status="Voorgesteld",
+            kwaliteitsinformatie={"binnen_concept": True, "poging": poging},
+        )
