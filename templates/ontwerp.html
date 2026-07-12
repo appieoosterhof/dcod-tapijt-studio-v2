@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DCOD Dessinator™ — Ontwerp zelf met AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#111315; --panel:#1A2320; --canvas:#202624; --card:#24302B; --card-hi:#2B3933;
+  --green:#A7C58E; --green-dim:#7f9a66; --roze:#C38D96; --grijsgroen:#D5E0DF;
+  --text:#CBD3CE; --text-strong:#F2F6F3; --muted:#8A968F; --faint:#697570;
+  --line:rgba(167,197,142,.12); --line-strong:rgba(167,197,142,.22);
+  --radius:14px; --radius-sm:9px;
+  --font:"Avenir Next","Avenir","Nunito Sans","Segoe UI",system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh;}
+a{color:var(--green);}
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 22px;border-bottom:1px solid var(--line);}
+header h1{font-size:18px;color:var(--text-strong);font-weight:700;letter-spacing:.2px;}
+header .sub{color:var(--muted);font-size:13px;}
+header .spacer{flex:1;}
+header input{background:var(--canvas);border:1px solid var(--line-strong);color:var(--text);border-radius:var(--radius-sm);padding:8px 10px;font-family:var(--font);font-size:13px;min-width:190px;}
+button{font-family:var(--font);cursor:pointer;border:none;border-radius:var(--radius-sm);padding:10px 16px;font-size:14px;font-weight:600;background:var(--green);color:#16211a;transition:opacity .15s;}
+button.secundair{background:transparent;border:1px solid var(--line-strong);color:var(--text);}
+button:disabled{opacity:.45;cursor:not-allowed;}
+main{display:grid;grid-template-columns:minmax(380px,1fr) minmax(360px,1.05fr);gap:18px;padding:18px 22px;max-width:1320px;margin:0 auto;}
+.paneel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+.paneel + .paneel{margin-top:16px;}
+h2.kop{font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:12px;font-weight:700;}
+/* voortgang */
+#voortgang{display:flex;gap:6px;flex-wrap:wrap;}
+.mijlpaal{flex:1;min-width:70px;text-align:center;font-size:11px;color:var(--faint);padding:8px 4px;border-radius:var(--radius-sm);background:var(--canvas);border:1px solid var(--line);}
+.mijlpaal.actief{color:var(--text-strong);border-color:var(--green-dim);}
+.mijlpaal.klaar{color:var(--green);border-color:var(--line-strong);}
+.mijlpaal .bol{display:block;width:9px;height:9px;border-radius:50%;background:var(--faint);margin:0 auto 6px;}
+.mijlpaal.actief .bol{background:var(--green-dim);}
+.mijlpaal.klaar .bol{background:var(--green);}
+/* chat */
+#gesprek{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.bericht{padding:10px 13px;border-radius:12px;font-size:14px;max-width:88%;}
+.bericht.gebruiker{align-self:flex-end;background:var(--card-hi);color:var(--text-strong);}
+.bericht.dessinator{align-self:flex-start;background:var(--canvas);border:1px solid var(--line);}
+#invoerrij{display:flex;gap:8px;}
+#invoer{flex:1;background:var(--canvas);border:1px solid var(--line-strong);color:var(--text);border-radius:var(--radius-sm);padding:11px 12px;font-family:var(--font);font-size:14px;resize:none;}
+/* actie/kaarten */
+.kaart{background:var(--card);border:1px solid var(--line-strong);border-radius:var(--radius-sm);padding:14px;margin-top:10px;}
+.kaart h3{font-size:15px;color:var(--text-strong);margin-bottom:6px;}
+.kaart p{font-size:13px;color:var(--muted);margin-bottom:10px;}
+.kaart .acties{display:flex;gap:8px;flex-wrap:wrap;}
+.keuzes{display:flex;flex-direction:column;gap:8px;}
+.keuze{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 13px;color:var(--text);font-weight:400;}
+.keuze:hover{border-color:var(--green-dim);}
+/* visualisatie */
+#viz{min-height:260px;display:flex;align-items:center;justify-content:center;background:var(--canvas);border-radius:var(--radius-sm);overflow:hidden;position:relative;}
+#viz img{max-width:100%;display:block;}
+.stalen{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:12px;}
+.staal{width:44px;height:44px;border-radius:8px;border:1px solid var(--line-strong);}
+.leeg{color:var(--faint);font-size:13px;padding:28px;text-align:center;}
+.mockup{position:relative;width:100%;}
+.mockup .achtergrond{width:100%;display:block;}
+.mockup .dessin-overlay{position:absolute;inset:0;background-size:22% auto;background-repeat:repeat;opacity:.92;}
+/* samenvatting */
+#samenvatting dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;}
+#samenvatting dt{color:var(--muted);}
+#samenvatting dd{color:var(--text-strong);}
+/* meldingen */
+#melding{margin-top:10px;font-size:13px;color:var(--roze);min-height:18px;}
+.bezig{color:var(--muted);font-style:italic;font-size:13px;}
+/* eindscherm */
+#eind{display:none;}
+#eind.zichtbaar{display:block;}
+@media (max-width:900px){ main{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>DCOD Dessinator™</h1>
+    <div class="sub">Ontwerp zelf met AI — samen naar uw vloer</div>
+  </div>
+  <div class="spacer"></div>
+  <input type="password" id="apiKey" placeholder="Uw API-sleutel (sk-ant-…)" autocomplete="off"/>
+  <button class="secundair" id="nieuwGesprek">Nieuw gesprek</button>
+</header>
+
+<main>
+  <!-- Links: gesprek & beslissingen -->
+  <section>
+    <div class="paneel">
+      <h2 class="kop">Voortgang</h2>
+      <div id="voortgang"></div>
+    </div>
+
+    <div class="paneel">
+      <h2 class="kop">Gesprek</h2>
+      <div id="gesprek"></div>
+      <div id="invoerrij">
+        <textarea id="invoer" rows="2" placeholder="Vertel me over de ruimte die u wilt aankleden…"></textarea>
+        <button id="verstuur">Stuur</button>
+      </div>
+      <div id="actie"></div>
+      <div id="melding"></div>
+    </div>
+
+    <div class="paneel">
+      <h2 class="kop">Samenvatting</h2>
+      <div id="samenvatting"><div class="leeg">Uw keuzes verschijnen hier terwijl we samen ontwerpen.</div></div>
+    </div>
+  </section>
+
+  <!-- Rechts: visualisatie -->
+  <section>
+    <div class="paneel">
+      <h2 class="kop">Beeld</h2>
+      <div id="viz"><div class="leeg">Zodra we een richting kiezen, verschijnt hier het beeld.</div></div>
+      <div id="ruimte"></div>
+    </div>
+
+    <div class="paneel" id="eind">
+      <h2 class="kop">Klaar voor DCOD</h2>
+      <div id="eindinhoud"></div>
+    </div>
+  </section>
+</main>
+
+<script src="/static/js/ontwerp.js?v=20260712_011000"></script>
+</body>
+</html>

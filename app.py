@@ -709,6 +709,14 @@ def inspiratie():
     return render_template("inspiratie.html")
 
 
+# ─── Design Brain-frontend (BUILD-021) — uitsluitend additief ────────────────
+# Eigen pagina ("Ontwerp zelf met AI") op de bestaande /api/design-brain-
+# endpoints; raakt geen bestaande route, flow of pipeline aan.
+@app.route("/ontwerp")
+def ontwerp():
+    return render_template("ontwerp.html")
+
+
 # ─── Scene Builder (BUILD-006) ────────────────────────────────────────────────
 # Volledig additief: eigen pagina, eigen /api/scenes-routes, raakt geen
 # bestaande route of functionaliteit aan. Zie scene_builder.py voor het
