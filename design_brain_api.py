@@ -42,7 +42,7 @@ from ontwerpstrategie_stap import OntwerpStrategieStap
 from reasoning_engine import ReasoningEngine, FloorDesign
 from material_planner import MaterialPlanner, MaterialProfile
 from pattern_planner import PatternPlanner, PatternProfile
-from svg_planner import SVGResultaat
+from svg_planner import SVGResultaat, SVGPlanner
 from svg_planner_pipeline import maak_svg_planner
 from floor_visualization_engine import FloorVisualizationEngine, Visualisatie
 from design_transfer_package import DesignTransferPackageBuilder, DesignTransferPackage
@@ -187,6 +187,42 @@ def _ai_sleutel() -> str:
     return sleutel
 
 
+def _herkomst_id(obj, veld):
+    """Hulp: de herkomst-identifier van een resultaat-object, of None."""
+    return (getattr(obj, veld, None) or {}).get("identifier")
+
+
+def _invalideer_verouderd(toestand) -> None:
+    """BUILD-023 R4 — gerichte invalidatie via UITSLUITEND de bestaande
+    is_stale/herkomst-mechanismen. Verwijdert (lazy, idempotent) downstream-
+    resultaten die niet meer bij hun bevestigde upstream horen, zodat hergebruik
+    en fase-routing consistent zijn. Geen nieuw cache-/statusmechanisme.
+    """
+    t = toestand
+    fd_id = t.floor_design.identifier if t.floor_design else None
+    # Material Profile(s) <- Floor Design (herkomst-identifier).
+    if t.material_profile and _herkomst_id(t.material_profile, "floor_design_herkomst") != fd_id:
+        t.material_profile = None
+    if t.material_profiles and _herkomst_id(t.material_profiles[0], "floor_design_herkomst") != fd_id:
+        t.material_profiles = []
+    mp_id = t.material_profile.identifier if t.material_profile else None
+    # Pattern Profile(s) <- Material Profile (herkomst-identifier).
+    if t.pattern_profile and _herkomst_id(t.pattern_profile, "material_profile_herkomst") != mp_id:
+        t.pattern_profile = None
+    if t.pattern_profiles and _herkomst_id(t.pattern_profiles[0], "material_profile_herkomst") != mp_id:
+        t.pattern_profiles = []
+    # SVGResultaat <- Pattern Profile (bestaande is_stale).
+    if t.svg_resultaat and (t.pattern_profile is None or SVGPlanner.is_stale(t.svg_resultaat, t.pattern_profile)):
+        t.svg_resultaat = None
+    # Visualisatie <- SVGResultaat (bestaande is_stale).
+    if t.visualisatie and (t.svg_resultaat is None or FloorVisualizationEngine.is_stale(t.visualisatie, t.svg_resultaat)):
+        t.visualisatie = None
+    # Design Transfer Package <- SVGResultaat + Visualisatie (bestaande is_stale).
+    if t.pakket and (t.svg_resultaat is None or t.visualisatie is None
+                     or DesignTransferPackageBuilder.is_stale(t.pakket, t.svg_resultaat, t.visualisatie)):
+        t.pakket = None
+
+
 # ─── Blueprint ────────────────────────────────────────────────────────────────
 design_brain_bp = Blueprint("design_brain", __name__, url_prefix="/api/design-brain")
 
@@ -202,6 +238,7 @@ def _met_gesprek(fn):
             toestand = _laad(gesprek_id)
             if toestand is None:
                 return _fout("Onbekend gesprek.", 404)
+            _invalideer_verouderd(toestand)  # BUILD-023 R4 (gerichte invalidatie)
             try:
                 return fn(gesprek_id, toestand)
             except Exception as exc:  # nooit een half-geschreven toestand
@@ -223,6 +260,7 @@ def status(gesprek_id):
     toestand = _laad(gesprek_id)  # read-only: geen slot, geen opslag
     if toestand is None:
         return _fout("Onbekend gesprek.", 404)
+    _invalideer_verouderd(toestand)  # BUILD-023 R4 (consistente clientweergave)
     return _ok({"toestand": _toestand_naar_dict(toestand)})
 
 
@@ -289,6 +327,10 @@ def bevestig_visie(gesprek_id, toestand):
 @design_brain_bp.route("/<gesprek_id>/ontwerpstrategie", methods=["POST"])
 @_met_gesprek
 def ontwerpstrategie(gesprek_id, toestand):
+    # BUILD-023 R1/R6: hergebruik een bestaande strategie (laag 3 = presence-based);
+    # geen nieuwe reasoning-aanroep zonder nieuwe ontwerpwaarde.
+    if toestand.design_context.ontwerpstrategie.aanpak:
+        return _ok({"ontwerpstrategie": asdict(toestand.design_context.ontwerpstrategie)})
     # BUILD-020 / BUILD-009: laag 3 uit de bevestigde visie (laag 1) + de
     # geprojecteerde Project-/Ruimtecontext (laag 2). De component stelt voor
     # (status "in ontwikkeling") en bevestigt nooit; muteert nooit laag 1/2.
@@ -315,6 +357,9 @@ def bevestig_strategie(gesprek_id, toestand):
 @design_brain_bp.route("/<gesprek_id>/concept", methods=["POST"])
 @_met_gesprek
 def concept(gesprek_id, toestand):
+    # BUILD-023 R1/R6: hergebruik een bestaand Concept (laag 4 = presence-based).
+    if toestand.design_context.concept.stijlfamilie:
+        return _ok({"concept": asdict(toestand.design_context.concept)})
     # Workflow-gate (BUILD-020 / gelaagde bevestiging): het Concept volgt pas op
     # een vastgestelde Ontwerpstrategie. vorm_concept zelf toetst uitsluitend
     # `aanpak`; deze gate borgt de gezamenlijke vaststelling van laag 3.
@@ -341,6 +386,9 @@ def bevestig_concept(gesprek_id, toestand):
 @design_brain_bp.route("/<gesprek_id>/floor-designs", methods=["POST"])
 @_met_gesprek
 def floor_designs(gesprek_id, toestand):
+    # BUILD-023 R1/R4: hergebruik bestaande (niet-stale) Floor Designs.
+    if toestand.floor_designs:
+        return _ok({"floor_designs": [asdict(x) for x in toestand.floor_designs]})
     resultaat = ReasoningEngine().genereer_floor_designs(toestand.design_context)
     if not resultaat.geslaagd:
         return _signalering(resultaat.signaleringen)
@@ -367,6 +415,9 @@ def bevestig_floor_design(gesprek_id, toestand):
 @design_brain_bp.route("/<gesprek_id>/material-profiles", methods=["POST"])
 @_met_gesprek
 def material_profiles(gesprek_id, toestand):
+    # BUILD-023 R1/R4: hergebruik bestaande (niet-stale) Material Profiles.
+    if toestand.material_profiles:
+        return _ok({"material_profiles": [asdict(x) for x in toestand.material_profiles]})
     if toestand.floor_design is None:
         return _fout("Bevestig eerst een Floor Design.", 409)
     resultaat = MaterialPlanner().stel_material_profiles_voor(
@@ -396,6 +447,9 @@ def bevestig_material_profile(gesprek_id, toestand):
 @design_brain_bp.route("/<gesprek_id>/pattern-profiles", methods=["POST"])
 @_met_gesprek
 def pattern_profiles(gesprek_id, toestand):
+    # BUILD-023 R1/R4: hergebruik bestaande (niet-stale) Pattern Profiles.
+    if toestand.pattern_profiles:
+        return _ok({"pattern_profiles": [asdict(x) for x in toestand.pattern_profiles]})
     if toestand.material_profile is None:
         return _fout("Bevestig eerst een Material Profile.", 409)
     resultaat = PatternPlanner().stel_pattern_profiles_voor(
@@ -425,6 +479,10 @@ def bevestig_pattern_profile(gesprek_id, toestand):
 @design_brain_bp.route("/<gesprek_id>/svg", methods=["POST"])
 @_met_gesprek
 def svg(gesprek_id, toestand):
+    # BUILD-023 R1/R3: hergebruik een bestaand (niet-stale) SVGResultaat --
+    # deterministisch, geen herberekening bij ongewijzigd patroon.
+    if toestand.svg_resultaat:
+        return _ok({"svg_resultaat": asdict(toestand.svg_resultaat)})
     if toestand.pattern_profile is None:
         return _fout("Bevestig eerst een Pattern Profile.", 409)
     # SVG Planner met de PRODUCTIE-pipeline (BUILD-018-adapter).
@@ -441,10 +499,15 @@ def svg(gesprek_id, toestand):
 @design_brain_bp.route("/<gesprek_id>/visualisatie", methods=["POST"])
 @_met_gesprek
 def visualisatie(gesprek_id, toestand):
-    if toestand.svg_resultaat is None:
-        return _fout("Genereer eerst een SVG.", 409)
     data = request.get_json(silent=True) or {}
     scene_id = (data.get("scene_id") or "").strip()
+    # BUILD-023 R1/R3: hergebruik de Visualisatie als zij bij DEZELFDE ruimte hoort
+    # (een andere ruimte = gewijzigde invoer -> nieuwe projectie). Stale t.o.v. het
+    # SVGResultaat is al door de invalidatie afgevangen.
+    if toestand.visualisatie and _herkomst_id(toestand.visualisatie, "scene_herkomst") == scene_id:
+        return _ok({"visualisatie": asdict(toestand.visualisatie)})
+    if toestand.svg_resultaat is None:
+        return _fout("Genereer eerst een SVG.", 409)
     try:
         scene = scene_builder.laad_scene(scene_id)  # read-only, bestaande Scene Builder
     except Exception:
@@ -461,6 +524,9 @@ def visualisatie(gesprek_id, toestand):
 @design_brain_bp.route("/<gesprek_id>/transfer-package", methods=["POST"])
 @_met_gesprek
 def transfer_package(gesprek_id, toestand):
+    # BUILD-023 R1/R4: hergebruik een bestaand (niet-stale) Design Transfer Package.
+    if toestand.pakket:
+        return _ok({"design_transfer_package": asdict(toestand.pakket)})
     if toestand.visualisatie is None:
         return _fout("Maak eerst een Visualisatie.", 409)
     resultaat = DesignTransferPackageBuilder().bundel(
