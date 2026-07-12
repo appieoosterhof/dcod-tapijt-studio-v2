@@ -37,7 +37,8 @@ from flask import Blueprint, jsonify, request
 
 from design_context import DesignContext
 from conversation_planner import ConversationPlanner
-from context_interpreter import interpreteer_context
+from context_interpreter import interpreteer_context, pas_interpretaties_toe
+from ontwerpstrategie_stap import OntwerpStrategieStap
 from reasoning_engine import ReasoningEngine, FloorDesign
 from material_planner import MaterialPlanner, MaterialProfile
 from pattern_planner import PatternPlanner, PatternProfile
@@ -208,16 +209,40 @@ def dialoog(gesprek_id, toestand):
     data = request.get_json(silent=True) or {}
     invoer = (data.get("invoer") or "").strip()
     api_key = (data.get("api_key") or "").strip()
-    # Productie-injectie van de Context Interpreter (BUILD-017-boundary).
-    interpreter = lambda tekst: interpreteer_context(tekst, api_key=api_key)  # noqa: E731
-    resultaat = ConversationPlanner(interpreteer=interpreter).verwerk(toestand.design_context, invoer)
-    _sla_op(gesprek_id, toestand)  # laag 1-opbouw (incl. verbatim vrije_tekst) behouden
+    dc = toestand.design_context
+
+    # BUILD-020: ÉÉN interpretatie per beurt. De Conversation Planner roept de
+    # Context Interpreter aan (BUILD-017-boundary) en projecteert laag 1; wij
+    # vangen exact diezelfde interpretatielijst op om er de laag-2-subset uit te
+    # projecteren -- geen tweede interpretatie. De Context Interpreter blijft de
+    # enige interpreter; pas_interpretaties_toe blijft de enige projectie.
+    opgevangen: dict = {}
+
+    def interpreter(tekst):
+        interpretaties = interpreteer_context(tekst, api_key=api_key)
+        opgevangen["interpretaties"] = interpretaties
+        return interpretaties
+
+    resultaat = ConversationPlanner(interpreteer=interpreter).verwerk(dc, invoer)
+
+    # Laag-2-projectie uit dezelfde interpretatie. Loopt uitsluitend tijdens de
+    # dialoogfase: bij een reeds bevestigde visie roept de CP de interpreter niet
+    # aan (write-gate/read-only), dus blijft `opgevangen` leeg en wordt laag 2
+    # niet herschreven.
+    if "interpretaties" in opgevangen:
+        laag2 = [i for i in opgevangen["interpretaties"]
+                 if getattr(i, "laag", None) == "projectcontext"]
+        if laag2:
+            pas_interpretaties_toe(dc, laag2)
+
+    _sla_op(gesprek_id, toestand)  # laag 1 (CP) + laag 2 (projectie) behouden
     if not resultaat.geslaagd:
         return _signalering(resultaat.signaleringen)
     vs = resultaat.vervolgstap
     return _ok({
         "vervolgstap": {"type": vs.type, "inhoud": vs.inhoud} if vs else None,
-        "ontwerpvisie": asdict(toestand.design_context.ontwerpvisie),
+        "ontwerpvisie": asdict(dc.ontwerpvisie),
+        "projectcontext": asdict(dc.projectcontext),
     })
 
 
@@ -230,9 +255,40 @@ def bevestig_visie(gesprek_id, toestand):
     return _ok({"bevestigd_door_architect": True})
 
 
+@design_brain_bp.route("/<gesprek_id>/ontwerpstrategie", methods=["POST"])
+@_met_gesprek
+def ontwerpstrategie(gesprek_id, toestand):
+    # BUILD-020 / BUILD-009: laag 3 uit de bevestigde visie (laag 1) + de
+    # geprojecteerde Project-/Ruimtecontext (laag 2). De component stelt voor
+    # (status "in ontwikkeling") en bevestigt nooit; muteert nooit laag 1/2.
+    resultaat = OntwerpStrategieStap().stel_voor(toestand.design_context)
+    if not resultaat.geslaagd:
+        return _signalering(resultaat.signaleringen)
+    _sla_op(gesprek_id, toestand)  # dc.ontwerpstrategie + Ontwerpredenering
+    return _ok({"ontwerpstrategie": asdict(toestand.design_context.ontwerpstrategie)})
+
+
+@design_brain_bp.route("/<gesprek_id>/bevestig-strategie", methods=["POST"])
+@_met_gesprek
+def bevestig_strategie(gesprek_id, toestand):
+    # Gezamenlijke vaststelling (architect + DCOD, laag 3 is GEZAMENLIJK); de
+    # component zet deze status nooit zelf.
+    st = toestand.design_context.ontwerpstrategie
+    if not st.aanpak:
+        return _fout("Geen voorgestelde Ontwerpstrategie om vast te stellen.", 409)
+    st.status = OntwerpStrategieStap.STATUS_VASTGESTELD
+    _sla_op(gesprek_id, toestand)
+    return _ok({"ontwerpstrategie_status": st.status})
+
+
 @design_brain_bp.route("/<gesprek_id>/concept", methods=["POST"])
 @_met_gesprek
 def concept(gesprek_id, toestand):
+    # Workflow-gate (BUILD-020 / gelaagde bevestiging): het Concept volgt pas op
+    # een vastgestelde Ontwerpstrategie. vorm_concept zelf toetst uitsluitend
+    # `aanpak`; deze gate borgt de gezamenlijke vaststelling van laag 3.
+    if toestand.design_context.ontwerpstrategie.status != OntwerpStrategieStap.STATUS_VASTGESTELD:
+        return _fout("Stel eerst de Ontwerpstrategie vast.", 409)
     resultaat = ReasoningEngine().vorm_concept(toestand.design_context)
     if not resultaat.geslaagd:
         return _signalering(resultaat.signaleringen)
