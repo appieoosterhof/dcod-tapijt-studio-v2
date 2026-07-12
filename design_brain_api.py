@@ -1,0 +1,386 @@
+"""
+BUILD-019 / TD-008 -- Integratie Design Brain in de bestaande Flask-app.
+
+Additieve, UITSLUITEND ORKESTRERENDE ontsluitingslaag (Flask Blueprint) die de
+bestaande Design Brain-componenten aanstuurt. Stateless per request: elke
+endpoint laadt de gesprekstoestand op grond van een `gesprek_id`, roept precies
+één bestaande component aan, en slaat de toestand atomair terug.
+
+Kernprincipes (conform TD-008):
+  * geen ontwerplogica, geen duplicatie, geen bypass -- uitsluitend bestaande
+    componenten worden aangeroepen;
+  * id-gesleutelde, PERSISTENTE `Gesprekstoestand` (JSON per id, patroon van de
+    Scene Builder) in een NIET-geserveerde map (buiten static/) -- geen mutabele
+    globals, geen gedeelde toestand tussen gesprekken;
+  * atomaire schrijf via os.replace (harde garantie tegen corruptie/isolatie);
+    per-`gesprek_id` in-process slot als best-effort serialisatie binnen één
+    proces (multi-process: de atomaire schrijf blijft de garantie);
+  * eenzijdige neerwaartse import-richting: dit bestand importeert de keten-
+    modules; geen keten-module importeert `app` op moduleniveau. De BUILD-018
+    lui-import van `build_tile_svg` blijft leidend (binnen de boundary).
+
+Volledig additief: de enige aanraking van `app.py` is `register_blueprint`. Geen
+wijziging aan de Design Brain, de SVG-productiepipeline of de bestaande routes.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import threading
+import uuid
+from dataclasses import asdict, dataclass, field
+from functools import wraps
+from typing import Optional
+
+from flask import Blueprint, jsonify, request
+
+from design_context import DesignContext
+from conversation_planner import ConversationPlanner
+from context_interpreter import interpreteer_context
+from reasoning_engine import ReasoningEngine, FloorDesign
+from material_planner import MaterialPlanner, MaterialProfile
+from pattern_planner import PatternPlanner, PatternProfile
+from svg_planner import SVGResultaat
+from svg_planner_pipeline import maak_svg_planner
+from floor_visualization_engine import FloorVisualizationEngine, Visualisatie
+from design_transfer_package import DesignTransferPackageBuilder, DesignTransferPackage
+import scene_builder
+
+
+# ─── Gesprekstoestand (verzameling BESTAANDE objecten; geen nieuw domeinobject) ─
+@dataclass
+class Gesprekstoestand:
+    design_context: DesignContext = field(default_factory=DesignContext)
+    floor_designs: list = field(default_factory=list)
+    floor_design: Optional[FloorDesign] = None
+    material_profiles: list = field(default_factory=list)
+    material_profile: Optional[MaterialProfile] = None
+    pattern_profiles: list = field(default_factory=list)
+    pattern_profile: Optional[PatternProfile] = None
+    svg_resultaat: Optional[SVGResultaat] = None
+    visualisatie: Optional[Visualisatie] = None
+    pakket: Optional[DesignTransferPackage] = None
+
+
+def _artefact_naar_dict(obj):
+    return asdict(obj) if obj is not None else None
+
+
+def _artefact_uit_dict(cls, data):
+    return cls(**data) if data is not None else None
+
+
+def _toestand_naar_dict(t: Gesprekstoestand) -> dict:
+    return {
+        "design_context": t.design_context.to_dict(),
+        "floor_designs": [asdict(x) for x in t.floor_designs],
+        "floor_design": _artefact_naar_dict(t.floor_design),
+        "material_profiles": [asdict(x) for x in t.material_profiles],
+        "material_profile": _artefact_naar_dict(t.material_profile),
+        "pattern_profiles": [asdict(x) for x in t.pattern_profiles],
+        "pattern_profile": _artefact_naar_dict(t.pattern_profile),
+        "svg_resultaat": _artefact_naar_dict(t.svg_resultaat),
+        "visualisatie": _artefact_naar_dict(t.visualisatie),
+        "pakket": _artefact_naar_dict(t.pakket),
+    }
+
+
+def _toestand_uit_dict(d: dict) -> Gesprekstoestand:
+    return Gesprekstoestand(
+        design_context=DesignContext.from_dict(d.get("design_context", {})),
+        floor_designs=[FloorDesign(**x) for x in d.get("floor_designs", [])],
+        floor_design=_artefact_uit_dict(FloorDesign, d.get("floor_design")),
+        material_profiles=[MaterialProfile(**x) for x in d.get("material_profiles", [])],
+        material_profile=_artefact_uit_dict(MaterialProfile, d.get("material_profile")),
+        pattern_profiles=[PatternProfile(**x) for x in d.get("pattern_profiles", [])],
+        pattern_profile=_artefact_uit_dict(PatternProfile, d.get("pattern_profile")),
+        svg_resultaat=_artefact_uit_dict(SVGResultaat, d.get("svg_resultaat")),
+        visualisatie=_artefact_uit_dict(Visualisatie, d.get("visualisatie")),
+        pakket=_artefact_uit_dict(DesignTransferPackage, d.get("pakket")),
+    )
+
+
+# ─── Persistente store (buiten static/, id-gesleuteld, atomair) ───────────────
+GESPREKKEN_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gesprekken")
+
+
+def _geldig_gid(gid: str) -> bool:
+    """Uitsluitend door ons gegenereerde UUID's -- voorkomt path-traversal."""
+    try:
+        uuid.UUID(str(gid))
+        return True
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
+def _pad(gid: str) -> str:
+    return os.path.join(GESPREKKEN_DIR, f"{gid}.json")
+
+
+def _laad(gid: str) -> Optional[Gesprekstoestand]:
+    pad = _pad(gid)
+    if not os.path.isfile(pad):
+        return None
+    with open(pad, encoding="utf-8") as f:
+        return _toestand_uit_dict(json.load(f))
+
+
+def _sla_op(gid: str, toestand: Gesprekstoestand) -> None:
+    os.makedirs(GESPREKKEN_DIR, exist_ok=True)
+    pad = _pad(gid)
+    tmp = f"{pad}.tmp.{uuid.uuid4().hex}"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(_toestand_naar_dict(toestand), f, ensure_ascii=False)
+    os.replace(tmp, pad)  # atomair -- geen half-geschreven toestand
+
+
+# ─── Per-gesprek slot (best-effort, in-process; houdt GEEN gesprekstoestand) ──
+_sloten: dict[str, threading.Lock] = {}
+_sloten_meta = threading.Lock()
+
+
+def _slot(gid: str) -> threading.Lock:
+    with _sloten_meta:
+        slot = _sloten.get(gid)
+        if slot is None:
+            slot = threading.Lock()
+            _sloten[gid] = slot
+        return slot
+
+
+# ─── Response-helpers ─────────────────────────────────────────────────────────
+def _ok(payload: dict, code: int = 200):
+    return jsonify({"success": True, **payload}), code
+
+
+def _fout(bericht: str, code: int):
+    return jsonify({"success": False, "error": bericht}), code
+
+
+def _signalering(signaleringen: list):
+    # Een gate-uitkomst is een normale toestand, geen serverfout.
+    return jsonify({"success": False, "signaleringen": signaleringen}), 200
+
+
+# ─── Blueprint ────────────────────────────────────────────────────────────────
+design_brain_bp = Blueprint("design_brain", __name__, url_prefix="/api/design-brain")
+
+
+def _met_gesprek(fn):
+    """Laadt onder het per-id-slot de toestand (404 bij onbekend id) en vangt
+    onverwachte fouten af. De endpoint slaat zelf expliciet op bij succes."""
+    @wraps(fn)
+    def wrapper(gesprek_id):
+        if not _geldig_gid(gesprek_id):
+            return _fout("Ongeldig gesprek_id.", 400)
+        with _slot(gesprek_id):
+            toestand = _laad(gesprek_id)
+            if toestand is None:
+                return _fout("Onbekend gesprek.", 404)
+            try:
+                return fn(gesprek_id, toestand)
+            except Exception as exc:  # nooit een half-geschreven toestand
+                return _fout(f"Interne fout: {exc}", 500)
+    return wrapper
+
+
+@design_brain_bp.route("/gesprek", methods=["POST"])
+def start_gesprek():
+    gid = str(uuid.uuid4())
+    _sla_op(gid, Gesprekstoestand())
+    return _ok({"gesprek_id": gid}, 201)
+
+
+@design_brain_bp.route("/<gesprek_id>", methods=["GET"])
+def status(gesprek_id):
+    if not _geldig_gid(gesprek_id):
+        return _fout("Ongeldig gesprek_id.", 400)
+    toestand = _laad(gesprek_id)  # read-only: geen slot, geen opslag
+    if toestand is None:
+        return _fout("Onbekend gesprek.", 404)
+    return _ok({"toestand": _toestand_naar_dict(toestand)})
+
+
+@design_brain_bp.route("/<gesprek_id>/dialoog", methods=["POST"])
+@_met_gesprek
+def dialoog(gesprek_id, toestand):
+    data = request.get_json(silent=True) or {}
+    invoer = (data.get("invoer") or "").strip()
+    api_key = (data.get("api_key") or "").strip()
+    # Productie-injectie van de Context Interpreter (BUILD-017-boundary).
+    interpreter = lambda tekst: interpreteer_context(tekst, api_key=api_key)  # noqa: E731
+    resultaat = ConversationPlanner(interpreteer=interpreter).verwerk(toestand.design_context, invoer)
+    _sla_op(gesprek_id, toestand)  # laag 1-opbouw (incl. verbatim vrije_tekst) behouden
+    if not resultaat.geslaagd:
+        return _signalering(resultaat.signaleringen)
+    vs = resultaat.vervolgstap
+    return _ok({
+        "vervolgstap": {"type": vs.type, "inhoud": vs.inhoud} if vs else None,
+        "ontwerpvisie": asdict(toestand.design_context.ontwerpvisie),
+    })
+
+
+@design_brain_bp.route("/<gesprek_id>/bevestig-visie", methods=["POST"])
+@_met_gesprek
+def bevestig_visie(gesprek_id, toestand):
+    # Expliciete architect-actie; de component zet deze vlag nooit zelf.
+    toestand.design_context.ontwerpvisie.bevestigd_door_architect = True
+    _sla_op(gesprek_id, toestand)
+    return _ok({"bevestigd_door_architect": True})
+
+
+@design_brain_bp.route("/<gesprek_id>/concept", methods=["POST"])
+@_met_gesprek
+def concept(gesprek_id, toestand):
+    resultaat = ReasoningEngine().vorm_concept(toestand.design_context)
+    if not resultaat.geslaagd:
+        return _signalering(resultaat.signaleringen)
+    _sla_op(gesprek_id, toestand)  # dc.concept (voorgesteld) + Ontwerpredenering
+    return _ok({"concept": asdict(toestand.design_context.concept)})
+
+
+@design_brain_bp.route("/<gesprek_id>/bevestig-concept", methods=["POST"])
+@_met_gesprek
+def bevestig_concept(gesprek_id, toestand):
+    c = toestand.design_context.concept
+    if not c.stijlfamilie:
+        return _fout("Geen voorgesteld Concept om te bevestigen.", 409)
+    c.status = "bevestigd"  # architect-actie
+    _sla_op(gesprek_id, toestand)
+    return _ok({"concept_status": c.status})
+
+
+@design_brain_bp.route("/<gesprek_id>/floor-designs", methods=["POST"])
+@_met_gesprek
+def floor_designs(gesprek_id, toestand):
+    resultaat = ReasoningEngine().genereer_floor_designs(toestand.design_context)
+    if not resultaat.geslaagd:
+        return _signalering(resultaat.signaleringen)
+    toestand.floor_designs = resultaat.floor_designs
+    toestand.floor_design = None
+    _sla_op(gesprek_id, toestand)
+    return _ok({"floor_designs": [asdict(x) for x in resultaat.floor_designs]})
+
+
+@design_brain_bp.route("/<gesprek_id>/bevestig-floor-design", methods=["POST"])
+@_met_gesprek
+def bevestig_floor_design(gesprek_id, toestand):
+    data = request.get_json(silent=True) or {}
+    idx = data.get("index", 0)
+    if not isinstance(idx, int) or not (0 <= idx < len(toestand.floor_designs)):
+        return _fout("Ongeldige index voor Floor Design.", 400)
+    fd = toestand.floor_designs[idx]
+    fd.status = "Bevestigd"  # architect-actie
+    toestand.floor_design = fd
+    _sla_op(gesprek_id, toestand)
+    return _ok({"floor_design": asdict(fd)})
+
+
+@design_brain_bp.route("/<gesprek_id>/material-profiles", methods=["POST"])
+@_met_gesprek
+def material_profiles(gesprek_id, toestand):
+    if toestand.floor_design is None:
+        return _fout("Bevestig eerst een Floor Design.", 409)
+    resultaat = MaterialPlanner().stel_material_profiles_voor(
+        toestand.design_context, toestand.floor_design)
+    if not resultaat.geslaagd:
+        return _signalering(resultaat.signaleringen)
+    toestand.material_profiles = resultaat.material_profiles
+    toestand.material_profile = None
+    _sla_op(gesprek_id, toestand)
+    return _ok({"material_profiles": [asdict(x) for x in resultaat.material_profiles]})
+
+
+@design_brain_bp.route("/<gesprek_id>/bevestig-material-profile", methods=["POST"])
+@_met_gesprek
+def bevestig_material_profile(gesprek_id, toestand):
+    data = request.get_json(silent=True) or {}
+    idx = data.get("index", 0)
+    if not isinstance(idx, int) or not (0 <= idx < len(toestand.material_profiles)):
+        return _fout("Ongeldige index voor Material Profile.", 400)
+    mp = toestand.material_profiles[idx]
+    mp.status = "Bevestigd"  # architect-actie
+    toestand.material_profile = mp
+    _sla_op(gesprek_id, toestand)
+    return _ok({"material_profile": asdict(mp)})
+
+
+@design_brain_bp.route("/<gesprek_id>/pattern-profiles", methods=["POST"])
+@_met_gesprek
+def pattern_profiles(gesprek_id, toestand):
+    if toestand.material_profile is None:
+        return _fout("Bevestig eerst een Material Profile.", 409)
+    resultaat = PatternPlanner().stel_pattern_profiles_voor(
+        toestand.design_context, toestand.floor_design, toestand.material_profile)
+    if not resultaat.geslaagd:
+        return _signalering(resultaat.signaleringen)
+    toestand.pattern_profiles = resultaat.pattern_profiles
+    toestand.pattern_profile = None
+    _sla_op(gesprek_id, toestand)
+    return _ok({"pattern_profiles": [asdict(x) for x in resultaat.pattern_profiles]})
+
+
+@design_brain_bp.route("/<gesprek_id>/bevestig-pattern-profile", methods=["POST"])
+@_met_gesprek
+def bevestig_pattern_profile(gesprek_id, toestand):
+    data = request.get_json(silent=True) or {}
+    idx = data.get("index", 0)
+    if not isinstance(idx, int) or not (0 <= idx < len(toestand.pattern_profiles)):
+        return _fout("Ongeldige index voor Pattern Profile.", 400)
+    pp = toestand.pattern_profiles[idx]
+    pp.status = "Bevestigd"  # architect-actie
+    toestand.pattern_profile = pp
+    _sla_op(gesprek_id, toestand)
+    return _ok({"pattern_profile": asdict(pp)})
+
+
+@design_brain_bp.route("/<gesprek_id>/svg", methods=["POST"])
+@_met_gesprek
+def svg(gesprek_id, toestand):
+    if toestand.pattern_profile is None:
+        return _fout("Bevestig eerst een Pattern Profile.", 409)
+    # SVG Planner met de PRODUCTIE-pipeline (BUILD-018-adapter).
+    resultaat = maak_svg_planner().render(
+        toestand.design_context, toestand.floor_design,
+        toestand.material_profile, toestand.pattern_profile)
+    if not resultaat.geslaagd:
+        return _signalering(resultaat.signaleringen)
+    toestand.svg_resultaat = resultaat.svg_resultaat
+    _sla_op(gesprek_id, toestand)
+    return _ok({"svg_resultaat": asdict(resultaat.svg_resultaat)})
+
+
+@design_brain_bp.route("/<gesprek_id>/visualisatie", methods=["POST"])
+@_met_gesprek
+def visualisatie(gesprek_id, toestand):
+    if toestand.svg_resultaat is None:
+        return _fout("Genereer eerst een SVG.", 409)
+    data = request.get_json(silent=True) or {}
+    scene_id = (data.get("scene_id") or "").strip()
+    try:
+        scene = scene_builder.laad_scene(scene_id)  # read-only, bestaande Scene Builder
+    except Exception:
+        return _fout("Onbekende of ongeldige scene.", 400)
+    resultaat = FloorVisualizationEngine().componeer(
+        toestand.svg_resultaat, toestand.floor_design, toestand.material_profile, scene)
+    if not resultaat.geslaagd:
+        return _signalering(resultaat.signaleringen)
+    toestand.visualisatie = resultaat.visualisatie
+    _sla_op(gesprek_id, toestand)
+    return _ok({"visualisatie": asdict(resultaat.visualisatie)})
+
+
+@design_brain_bp.route("/<gesprek_id>/transfer-package", methods=["POST"])
+@_met_gesprek
+def transfer_package(gesprek_id, toestand):
+    if toestand.visualisatie is None:
+        return _fout("Maak eerst een Visualisatie.", 409)
+    resultaat = DesignTransferPackageBuilder().bundel(
+        toestand.design_context, toestand.floor_design, toestand.material_profile,
+        toestand.svg_resultaat, toestand.visualisatie)
+    if not resultaat.geslaagd:
+        return _signalering(resultaat.signaleringen)
+    toestand.pakket = resultaat.pakket
+    _sla_op(gesprek_id, toestand)
+    return _ok({"design_transfer_package": asdict(resultaat.pakket)})

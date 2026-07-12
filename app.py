@@ -1109,6 +1109,14 @@ def export_png():
                      mimetype="image/png")
 
 
+# ─── Design Brain-integratie (BUILD-019 / TD-008) — uitsluitend additief ─────
+# Registreert de Design Brain-ontsluitingslaag als Flask Blueprint. Raakt geen
+# bestaande route, flow of de productiepipeline; de keten-modules importeren
+# `app` nooit op moduleniveau (de BUILD-018 lui-import blijft leidend).
+from design_brain_api import design_brain_bp
+app.register_blueprint(design_brain_bp)
+
+
 if __name__ == "__main__":
     print("=" * 55)
     print("  RepeatTile Studio — Tapijt Dessin Generator")
