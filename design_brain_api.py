@@ -164,6 +164,29 @@ def _signalering(signaleringen: list):
     return jsonify({"success": False, "signaleringen": signaleringen}), 200
 
 
+def _onbeschikbaar():
+    """AB-012: neutrale 'AI-infrastructuur niet beschikbaar'-status -- nooit
+    technische details, modelnamen, sleutels of foutcodes naar de gebruiker."""
+    return jsonify({"success": False, "onbeschikbaar": True}), 200
+
+
+def _ai_sleutel() -> str:
+    """AB-012: de AI-sleutel is uitsluitend SERVERCONFIGURATIE.
+
+    Volgorde: omgevingsvariabele (productie) -> het reeds bestaande, gitignored
+    `api_key.txt` (dev). Wordt NOOIT uit de request/frontend gelezen.
+    """
+    sleutel = (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("DCOD_AI_KEY") or "").strip()
+    if not sleutel:
+        pad = os.path.join(os.path.dirname(os.path.abspath(__file__)), "api_key.txt")
+        try:
+            with open(pad, encoding="utf-8") as f:
+                sleutel = f.read().strip()
+        except OSError:
+            sleutel = ""
+    return sleutel
+
+
 # ─── Blueprint ────────────────────────────────────────────────────────────────
 design_brain_bp = Blueprint("design_brain", __name__, url_prefix="/api/design-brain")
 
@@ -208,8 +231,14 @@ def status(gesprek_id):
 def dialoog(gesprek_id, toestand):
     data = request.get_json(silent=True) or {}
     invoer = (data.get("invoer") or "").strip()
-    api_key = (data.get("api_key") or "").strip()
     dc = toestand.design_context
+
+    # AB-012: de AI-sleutel komt UITSLUITEND uit serverconfiguratie, nooit uit de
+    # request/frontend. Zonder geldige AI-config is de studio "niet beschikbaar"
+    # (mensvriendelijk, zonder technische details).
+    sleutel = _ai_sleutel()
+    if invoer and not sleutel:
+        return _onbeschikbaar()
 
     # BUILD-020: ÉÉN interpretatie per beurt. De Conversation Planner roept de
     # Context Interpreter aan (BUILD-017-boundary) en projecteert laag 1; wij
@@ -219,7 +248,7 @@ def dialoog(gesprek_id, toestand):
     opgevangen: dict = {}
 
     def interpreter(tekst):
-        interpretaties = interpreteer_context(tekst, api_key=api_key)
+        interpretaties = interpreteer_context(tekst, api_key=sleutel)
         opgevangen["interpretaties"] = interpretaties
         return interpretaties
 
@@ -237,7 +266,9 @@ def dialoog(gesprek_id, toestand):
 
     _sla_op(gesprek_id, toestand)  # laag 1 (CP) + laag 2 (projectie) behouden
     if not resultaat.geslaagd:
-        return _signalering(resultaat.signaleringen)
+        # Interpretatie mislukt = AI-infrastructuur niet beschikbaar (AB-012):
+        # neutrale melding, nooit de technische signalering (bv. sleutel/model).
+        return _onbeschikbaar()
     vs = resultaat.vervolgstap
     return _ok({
         "vervolgstap": {"type": vs.type, "inhoud": vs.inhoud} if vs else None,
