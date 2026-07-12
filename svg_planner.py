@@ -29,6 +29,7 @@ en aanvullende persistentie.
 
 from __future__ import annotations
 
+import copy
 import html
 import uuid
 from dataclasses import dataclass, field
@@ -252,7 +253,9 @@ class SVGPlanner:
     def _concept_snapshot(concept: Concept) -> dict:
         return {
             "stijlfamilie": concept.stijlfamilie,
-            "kleurpalet": concept.kleurpalet,
+            # Defensieve kopie: kleurpalet is een mutabele dict; een snapshot moet
+            # bevroren blijven ook als het bron-Concept later zou wijzigen.
+            "kleurpalet": copy.deepcopy(concept.kleurpalet),
             "complexiteit": concept.complexiteit,
             "motiefschaal": concept.motiefschaal,
             "status": concept.status,

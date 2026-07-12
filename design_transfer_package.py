@@ -34,6 +34,7 @@ DesignContext blijft volledig read-only; niets wordt erin geschreven.
 
 from __future__ import annotations
 
+import copy
 import uuid
 from dataclasses import dataclass, field
 from typing import Callable, Optional
@@ -337,7 +338,9 @@ class DesignTransferPackageBuilder:
             },
             "visualisatie": {
                 "identifier": visualisatie.identifier,
-                "beeld": dict(visualisatie.beeld) if isinstance(visualisatie.beeld, dict) else visualisatie.beeld,
+                # Defensieve diepe kopie: beeld bevat geneste mutabele structuren
+                # (o.a. vloerpolygon); de bundel moet bevroren blijven.
+                "beeld": copy.deepcopy(visualisatie.beeld),
                 "weergave_motivering": visualisatie.weergave_motivering,
             },
         }
@@ -363,7 +366,8 @@ class DesignTransferPackageBuilder:
             "pattern_profile": {
                 "identifier": (getattr(svg_resultaat, "pattern_profile_herkomst", {}) or {}).get("identifier")
             },
-            "concept": getattr(svg_resultaat, "concept_herkomst", {}) or {},
+            # Defensieve kopie: concept_herkomst bevat een mutabele kleurpalet-dict.
+            "concept": copy.deepcopy(getattr(svg_resultaat, "concept_herkomst", {}) or {}),
         }
 
     # ── Validatie van de export-representatie (formaat-onafhankelijk) ──────────

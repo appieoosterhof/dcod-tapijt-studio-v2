@@ -30,6 +30,7 @@ Transfer Package en overige downstream-componenten.
 
 from __future__ import annotations
 
+import copy
 import uuid
 from dataclasses import dataclass, field
 from typing import Callable, Optional
@@ -230,7 +231,9 @@ class FloorVisualizationEngine:
         return {
             "svg": svg_resultaat.svg,
             "achtergrond_url": scene.achtergrond_url(),
-            "polygon": list(scene.surface.polygon),
+            # Defensieve diepe kopie: het vloerpolygon is een lijst van sublijsten;
+            # list() zou de sublijsten met de Scene delen. Zo blijft de FVE read-only.
+            "polygon": copy.deepcopy(scene.surface.polygon),
             "ontwerprichting": floor_design.ontwerprichting,
             "uitstraling": material_profile.uitstraling,
         }

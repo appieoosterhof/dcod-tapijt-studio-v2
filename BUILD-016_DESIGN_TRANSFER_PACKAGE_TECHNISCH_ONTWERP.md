@@ -90,7 +90,7 @@ Het Design Transfer Package draagt **geen eigen Voorgesteld/Bevestigd-status**. 
 
 - **Fouttolerantie:** de Transfer-Boundary-aanroep in een `try/except`; een technische fout → gestructureerd foutresultaat, **nooit** een partieel of onwelgevormd pakket; DesignContext en bronnen ongewijzigd.
 - **Herstelgedrag:** her-bundeling bij een gewijzigde/*stale* bron of een technische fout, met regeneratielimiet (§5).
-- **Read-only snapshots:** de bundelinhoud wordt als read-only snapshot verzameld; de Builder muteert geen enkel bron-object. (Een projectbrede defensieve-kopie-afweging blijft, net als bij de eerdere componenten, een latere uniforme kwaliteitsronde.)
+- **Read-only snapshots:** de bundelinhoud wordt als read-only snapshot verzameld; de Builder muteert geen enkel bron-object. De snapshots die een mutabele structuur bevatten (het beeld-artefact en de transitieve concept-herkomst met kleurpalet) worden **defensief diep gekopieerd**, zodat de bundel bevroren blijft ook als een bron later zou wijzigen — projectbreed doorgevoerd in de kwaliteitsronde.
 - **Uitbreidbaarheid:** de Transfer Boundary is injecteerbaar — de standaard is een deterministische placeholder, maar een concreet exportformaat kan worden geïnjecteerd **zonder** de component te wijzigen.
 - **AI-model-onafhankelijk / deterministisch:** de bundeling is deterministisch; geen model, geen prompt.
 - **Additief:** nieuw bestand; geen wijziging aan `design_context.py`, de planner-modules, de FVE of de bestaande render-/projectiecode; geen koppeling aan de live pipeline tot er bewust wordt aangesloten.
