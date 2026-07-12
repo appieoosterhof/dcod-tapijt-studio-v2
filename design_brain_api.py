@@ -39,6 +39,7 @@ from design_context import DesignContext
 from conversation_planner import ConversationPlanner
 from context_interpreter import interpreteer_context, pas_interpretaties_toe
 from ontwerpstrategie_stap import OntwerpStrategieStap
+from ontwerpstrategie_capability import maak_ontwerpstrategie_redeneerfunctie
 from reasoning_engine import ReasoningEngine, FloorDesign
 from material_planner import MaterialPlanner, MaterialProfile
 from pattern_planner import PatternPlanner, PatternProfile
@@ -334,7 +335,11 @@ def ontwerpstrategie(gesprek_id, toestand):
     # BUILD-020 / BUILD-009: laag 3 uit de bevestigde visie (laag 1) + de
     # geprojecteerde Project-/Ruimtecontext (laag 2). De component stelt voor
     # (status "in ontwikkeling") en bevestigt nooit; muteert nooit laag 1/2.
-    resultaat = OntwerpStrategieStap().stel_voor(toestand.design_context)
+    # IMP-015: de reasoning boundary is nu configuratie-gestuurd (productie of
+    # deterministische placeholder). De sleutel is uitsluitend serverconfig
+    # (AB-012, _ai_sleutel); de component/orchestratie blijft ongewijzigd.
+    redeneer = maak_ontwerpstrategie_redeneerfunctie(_ai_sleutel())
+    resultaat = OntwerpStrategieStap(redeneer=redeneer).stel_voor(toestand.design_context)
     if not resultaat.geslaagd:
         return _signalering(resultaat.signaleringen)
     _sla_op(gesprek_id, toestand)  # dc.ontwerpstrategie + Ontwerpredenering
