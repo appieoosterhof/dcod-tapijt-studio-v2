@@ -34,7 +34,7 @@ Ontbreekt of is er één niet bevestigd, dan start de SVG Planner niet. Alle inv
 ## 4. Output
 
 - **SVG-resultaat:** een SVG — de getrouwe uitvoerende weergave van het bevestigde patroon op de vloerafwerking. Eventuele meervoudigheid (bijv. tegeling/resolutie) is **technisch**, nooit een ontwerpvariant.
-- **Status:** "Voorgesteld" — het gerenderde resultaat wordt aangeboden; het bevat **geen ontwerpkeuze**. Wijziging verloopt uitsluitend via een upstream-object, niet via het SVG-voorstel. Bevestiging (waar van toepassing) ligt bij de architect; de SVG Planner bevestigt nooit.
+- **Status:** het SVG-resultaat heeft **geen eigen bevestigingsstatus** (TD-004): het is een **deterministische rendering** van het bevestigde Pattern Profile en bevat **geen ontwerpkeuze**. Zijn geldigheid volgt volledig uit het bevestigde Pattern Profile waarnaar het verwijst; wijziging verloopt uitsluitend via een upstream-object, niet via het SVG-resultaat. De SVG Planner bevestigt nooit.
 - **Motivatie:** de onderbouwing bij het SVG-resultaat is uitsluitend een **weergave-onderbouwing** (hoe het bevestigde patroon getrouw is gerenderd) — geen ontwerprechtvaardiging.
 - **Herkomst:** het SVG-resultaat draagt een herkomst-referentie naar het bevestigde Pattern Profile (en, via diens herkomst, naar Concept, Floor Design en Material Profile).
 
@@ -75,7 +75,7 @@ Uitsluitend lezend (read-only):
 ## 9. Architecturale positie (ter attentie van de VR)
 
 Twee punten, ter borging van consistentie met de reeds vastgestelde architectuur:
-1. **Uitvoerend, geen ontwerpautoriteit.** De SVG Planner is uitsluitend uitvoerend en draagt geen ontwerpautoriteit (AR-004/AR-005). De status "Voorgesteld" van het SVG-resultaat betekent hier "aangeboden rendering", niet een ontwerpbeslissing; de SVG Planner voegt geen enkele ontwerpkeuze toe aan de reeds bevestigde bovenstroomse objecten.
+1. **Uitvoerend, geen ontwerpautoriteit.** De SVG Planner is uitsluitend uitvoerend en draagt geen ontwerpautoriteit (AR-004/AR-005). Het SVG-resultaat is een aangeboden, deterministische rendering **zonder eigen bevestigingsstatus** (TD-004), niet een ontwerpbeslissing; de SVG Planner voegt geen enkele ontwerpkeuze toe aan de reeds bevestigde bovenstroomse objecten.
 2. **Reeds bestaand + open koppeling.** De SVG Planner is de reeds erkende bestaande SVG-generatiepipeline (AB-005). De precieze technische koppeling tussen zijn output en de Floor Visualization Engine/visualisatie is een open technische interface (AR-003, C4) en wordt door dit functioneel ontwerp niet besloten.
 
 ---
