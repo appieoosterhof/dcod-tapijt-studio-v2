@@ -42,6 +42,7 @@ from ontwerpstrategie_stap import OntwerpStrategieStap
 from ontwerpstrategie_capability import maak_ontwerpstrategie_redeneerfunctie
 from conceptvorming_capability import maak_conceptvorming_redeneerfunctie
 from floor_design_capability import maak_floor_design_redeneerfunctie
+from material_planning_capability import maak_material_planning_redeneerfunctie
 from reasoning_engine import ReasoningEngine, FloorDesign
 from material_planner import MaterialPlanner, MaterialProfile
 from pattern_planner import PatternPlanner, PatternProfile
@@ -438,7 +439,12 @@ def material_profiles(gesprek_id, toestand):
         return _ok({"material_profiles": [asdict(x) for x in toestand.material_profiles]})
     if toestand.floor_design is None:
         return _fout("Bevestig eerst een Floor Design.", 409)
-    resultaat = MaterialPlanner().stel_material_profiles_voor(
+    # IMP-018: de Material Reasoning Boundary is nu configuratie-gestuurd (productie
+    # of deterministische placeholder). Alleen `materiaal_generatie` wordt
+    # geïnjecteerd; de sleutel is uitsluitend serverconfig (AB-012, _ai_sleutel);
+    # component/orchestratie ongewijzigd.
+    planner = MaterialPlanner(materiaal_generatie=maak_material_planning_redeneerfunctie(_ai_sleutel()))
+    resultaat = planner.stel_material_profiles_voor(
         toestand.design_context, toestand.floor_design)
     if not resultaat.geslaagd:
         return _signalering(resultaat.signaleringen)
