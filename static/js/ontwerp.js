@@ -314,22 +314,106 @@
     return h + "</div></div>";
   }
 
+  // ── Rechterpaneel = de ontwerptafel die MEEGROEIT (Experience Layer) ──────────
+  // De ruimte blijft altijd het hoofdbeeld; kleur/materiaal/patroon/dessin worden
+  // als stalen NEERGELEGD en verdwijnen niet. Geen technische taal, geen fallback-
+  // kleurvlakken. Alles afgeleid uit de reeds ontvangen toestand + gecureerde
+  // projectfoto's en CSS-texturen; geen extra endpoint, geen contractwijziging.
+  var WERELD_FOTO = [
+    [/hotel|leisure|lobby|restaurant|\bspa\b|\bbar\b|hospitality/, "project_2"],
+    [/biblio|museum|cultuur|leeszaal|archief/, "project_4"],
+    [/overheid|publiek|gemeente|stadhuis|\braad|balie|zorg|ziekenhuis/, "project_3"],
+    [/kantoor|werkplek|office|vergader|onderwijs|school|studio/, "project_1"]
+  ];
+  function wereldFoto(dc) {
+    var pc = dc.projectcontext || {};
+    var s = ((pc.projecttype || "") + " " + (pc.ruimtetype || "") + " " + (pc.gebruikscontext || "")).toLowerCase();
+    for (var i = 0; i < WERELD_FOTO.length; i++) if (WERELD_FOTO[i][0].test(s)) return WERELD_FOTO[i][1];
+    return "project_4"; // inspirerende, rustige standaard (Bibliotheek Wageningen)
+  }
+  function paletKleuren(palet) {
+    var a = []; for (var k in (palet || {})) { var v = palet[k]; if (typeof v === "string" && v[0] === "#") a.push(v); } return a;
+  }
+  function materiaalTextuur(mp, palet) {
+    var c = paletKleuren(palet), b = c[1] || c[0] || "#8a8a7a", a = c[0] || "#e8e6e1";
+    var s = ((mp.materiaalsoort || "") + " " + (mp.structuur || "") + " " + (mp.pooltype || "")).toLowerCase(), bg;
+    if (/velour|glad|vlak/.test(s)) bg = "linear-gradient(120deg," + b + ",rgba(255,255,255,.12))," + b;
+    else if (/boucl|lus/.test(s)) bg = "radial-gradient(" + a + " 1.4px,transparent 1.7px) 0 0/9px 9px," + b;
+    else if (/getuft|tuft|pool/.test(s)) bg = "repeating-linear-gradient(90deg," + b + " 0 3px,rgba(0,0,0,.16) 3px 5px)";
+    else if (/geweven|weef|weven/.test(s)) bg = "repeating-linear-gradient(45deg," + b + " 0 4px,rgba(255,255,255,.10) 4px 8px)";
+    else bg = "linear-gradient(135deg," + b + "," + a + ")";
+    return "background:" + bg + ";";
+  }
+  function patroonTextuur(pp, palet) {
+    var c = paletKleuren(palet), b = c[1] || c[0] || "#8a8a7a", a = c[0] || "#e8e6e1";
+    var s = (pp.motiefstructuur || "").toLowerCase(), st = (pp.motiefschaal || "").toLowerCase();
+    var d = st === "klein" ? 6 : (st === "groot" ? 16 : 10), bg;
+    if (/organisch|vloeiend|golf|natuur|zacht/.test(s))
+      bg = "radial-gradient(circle at 30% 40%," + a + " 0 " + (d - 2) + "px,transparent " + d + "px),radial-gradient(circle at 75% 72%," + a + " 0 " + (d - 2) + "px,transparent " + d + "px)," + b;
+    else if (/geometr|raster|grid|blok|ruit|vierkant/.test(s))
+      bg = "repeating-linear-gradient(0deg," + b + " 0 " + (d * 2 - 2) + "px," + a + " " + (d * 2 - 2) + "px " + (d * 2) + "px),repeating-linear-gradient(90deg,transparent 0 " + (d * 2 - 2) + "px,rgba(0,0,0,.12) " + (d * 2 - 2) + "px " + (d * 2) + "px)";
+    else bg = "repeating-linear-gradient(90deg," + b + " 0 " + d + "px," + a + " " + d + "px " + (d + 2) + "px)";
+    return "background:" + bg + ";";
+  }
+  function paletSig(co, dc) { return (co.stijlfamilie || "") + "|" + JSON.stringify(co.kleurpalet || {}) + "|" + ((dc.ontwerpvisie && dc.ontwerpvisie.sfeer) || ""); }
+  function paletStaal(co, dc) {
+    var band = paletKleuren(co.kleurpalet).map(function (c) { return '<span style="background:' + esc(c) + '"></span>'; }).join("");
+    var fam = (co.stijlfamilie || "").replace(/^stijl afgeleid van\s+/i, "").trim();
+    var sfeer = ((dc.ontwerpvisie && dc.ontwerpvisie.sfeer) || "").trim();
+    var woorden = fam || sfeer;
+    if (fam && sfeer && fam.toLowerCase() !== sfeer.toLowerCase() && fam.toLowerCase().indexOf(sfeer.toLowerCase()) < 0) woorden = fam + " · " + sfeer;
+    return '<div class="staal-kleurband">' + band + '</div><div class="staal-kop">Kleuren</div>' + (woorden ? '<div class="staal-tekst">' + esc(woorden) + "</div>" : "");
+  }
+  function richtingStaal(fd) { return '<div class="staal-kop">Richting</div><div class="staal-tekst richting">' + esc(fd.ontwerprichting || "") + "</div>"; }
+  function materiaalStaal(mp, palet) {
+    var naam = [mp.materiaalsoort, mp.structuur].filter(Boolean).join(", ");
+    return '<div class="staal-tegel" style="' + materiaalTextuur(mp, palet) + '"></div><div class="staal-kop">Materiaal</div>' + (naam ? '<div class="staal-tekst">' + esc(naam) + "</div>" : "");
+  }
+  function patroonStaal(pp, palet) {
+    return '<div class="staal-tegel" style="' + patroonTextuur(pp, palet) + '"></div><div class="staal-kop">Patroon</div>' + (pp.motiefstructuur ? '<div class="staal-tekst richting">' + esc(pp.motiefstructuur) + "</div>" : "");
+  }
+  function dessinStaal(svg) {
+    var uri = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+    return '<div class="staal-tegel" style="background-image:url(' + uri + ');background-size:cover"></div><div class="staal-kop">Het dessin</div>';
+  }
+
   function renderViz() {
-    var t = state.toestand, h, isMockup = false;
-    if (!t) { h = '<div class="leeg">Zodra we samen een richting kiezen, verschijnt hier uw vloer.</div>'; }
-    else if (t.visualisatie && t.visualisatie.beeld) { h = mockupHtml(t.visualisatie.beeld); isMockup = true; }
-    else if (t.svg_resultaat && t.svg_resultaat.svg) {
-      h = '<img alt="Uw dessin" src="data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(t.svg_resultaat.svg))) + '"/>';
-    } else {
-      var co = t.design_context && t.design_context.concept;
-      if (co && co.kleurpalet) {
-        h = '<div class="stalen">';
-        for (var k in co.kleurpalet) { var v = co.kleurpalet[k]; if (typeof v === "string" && v[0] === "#") h += '<span class="staal" style="background:' + esc(v) + '"></span>'; }
-        h += "</div>";
-      } else { h = '<div class="leeg">Zodra we samen een richting kiezen, verschijnt hier uw vloer.</div>'; }
+    var box = el("viz"); if (!box) return;
+    var t = state.toestand, dc = (t && t.design_context) || {};
+    var tafel = box.querySelector(".tafel");
+    if (!tafel) { box.innerHTML = '<div class="tafel"><div class="tafel-hoofd"></div><div class="tafel-stalen"></div></div>'; tafel = box.querySelector(".tafel"); }
+    var hoofd = tafel.querySelector(".tafel-hoofd"), stalen = tafel.querySelector(".tafel-stalen");
+
+    // Hoofdbeeld: de ruimte (projectfoto -> mock-up), zachte cross-fade; nooit leeg.
+    var heroKey, heroHtml, isMock = false;
+    if (t && t.visualisatie && t.visualisatie.beeld) { heroKey = "mockup"; heroHtml = mockupHtml(t.visualisatie.beeld); isMock = true; }
+    else { var f = wereldFoto(dc); heroKey = "foto:" + f; heroHtml = '<img class="ruimte" alt="" src="/static/img/projecten/' + f + '.jpg"/>'; }
+    if (hoofd.getAttribute("data-hero") !== heroKey) {
+      hoofd.setAttribute("data-hero", heroKey);
+      var laag = document.createElement("div"); laag.className = "hoofd-laag"; laag.innerHTML = heroHtml; hoofd.appendChild(laag);
+      var toon = function () { laag.classList.add("zichtbaar"); if (isMock) { var mk = laag.querySelector(".mockup"); if (mk) mk.classList.add("gelegd"); } };
+      if (reduceer()) toon(); else { requestAnimationFrame(toon); setTimeout(toon, 80); }
+      setTimeout(function () { while (hoofd.children.length > 1) hoofd.removeChild(hoofd.firstChild); }, 1300);
     }
-    zetInhoud("viz", h);
-    if (isMockup) { var mk = el("viz").querySelector(".mockup"); if (mk) requestAnimationFrame(function () { mk.classList.add("gelegd"); }); }
+
+    // Stalen: neergelegd en behouden; alleen bij een echte wijziging geactualiseerd.
+    var co = dc.concept || {}, gewenst = [];
+    if (co.kleurpalet) gewenst.push(["kleur", paletSig(co, dc), paletStaal(co, dc)]);
+    if (t && t.floor_design) gewenst.push(["richting", t.floor_design.identifier || t.floor_design.ontwerprichting, richtingStaal(t.floor_design)]);
+    if (t && t.material_profile) gewenst.push(["materiaal", t.material_profile.identifier, materiaalStaal(t.material_profile, co.kleurpalet)]);
+    if (t && t.pattern_profile) gewenst.push(["patroon", t.pattern_profile.identifier, patroonStaal(t.pattern_profile, co.kleurpalet)]);
+    if (t && t.svg_resultaat && t.svg_resultaat.svg && t.visualisatie) gewenst.push(["dessin", t.svg_resultaat.identifier, dessinStaal(t.svg_resultaat.svg)]);
+
+    var keys = gewenst.map(function (g) { return g[0]; });
+    [].slice.call(stalen.children).forEach(function (ch) { if (keys.indexOf(ch.getAttribute("data-staal")) < 0) stalen.removeChild(ch); });
+    gewenst.forEach(function (g) {
+      var key = g[0], sig = String(g[1] || ""), html = g[2], it = stalen.querySelector('[data-staal="' + key + '"]');
+      if (!it) {
+        it = document.createElement("div"); it.className = "staal-item"; it.setAttribute("data-staal", key); it.setAttribute("data-sig", sig); it.innerHTML = html;
+        stalen.appendChild(it);
+        if (reduceer()) it.classList.add("gelegd"); else { var leg = (function (e) { return function () { e.classList.add("gelegd"); }; })(it); requestAnimationFrame(leg); setTimeout(leg, 80); }
+      } else if (it.getAttribute("data-sig") !== sig) { it.setAttribute("data-sig", sig); it.innerHTML = html; it.classList.add("gelegd"); }
+    });
   }
 
   // Zelfstandige mockup uit de FVE-beeld-payload (geen matrix3d, geen kopie van

@@ -166,19 +166,38 @@ body.gestart main{opacity:1;}
 #samenvatting dt{color:var(--faint);font-variant:small-caps;letter-spacing:.4px;}
 #samenvatting dd{color:var(--grijsgroen);}
 
-/* beeldwand (presentatiebord) */
+/* beeldwand = de ontwerptafel die meegroeit met het gesprek */
 .beeldwand{position:sticky;top:18px;align-self:start;}
-#viz{min-height:52vh;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(160deg,var(--canvas),var(--diep));border:1px solid var(--line);
-  border-radius:var(--radius);overflow:hidden;position:relative;box-shadow:0 30px 70px -40px rgba(0,0,0,.7);}
-#viz img{max-width:100%;max-height:70vh;display:block;}
-.stalen{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;padding:26px;}
-.staal{width:58px;height:58px;border-radius:10px;border:1px solid var(--line-strong);box-shadow:0 6px 16px -8px rgba(0,0,0,.6);}
+#viz{min-height:52vh;display:block;position:relative;overflow:hidden;border-radius:var(--radius);
+  background:linear-gradient(160deg,var(--canvas),var(--diep));}
+.tafel{display:flex;flex-direction:column;min-height:52vh;}
+/* Hoofdbeeld: de ruimte blijft altijd het grootste beeld */
+.tafel-hoofd{position:relative;flex:1 1 auto;min-height:38vh;overflow:hidden;background:var(--diep);}
+.tafel-hoofd .hoofd-laag{position:absolute;inset:0;opacity:0;transition:opacity 1.1s ease;}
+.tafel-hoofd .hoofd-laag.zichtbaar{opacity:1;}
+.tafel-hoofd .ruimte{width:100%;height:100%;object-fit:cover;display:block;}
+.tafel-hoofd .mockup{width:100%;}
+.tafel-hoofd .mockup .achtergrond{width:100%;display:block;}
+/* Stalenstrook: elementen worden neergelegd, nooit verwijderd */
+.tafel-stalen{flex:none;display:flex;align-items:flex-end;flex-wrap:wrap;
+  gap:clamp(16px,2.2vw,30px);padding:clamp(16px,2.4vh,26px) clamp(18px,2.4vw,30px);}
+.staal-item{opacity:0;transform:translateY(8px);transition:opacity .9s ease,transform .9s ease;
+  display:flex;flex-direction:column;gap:7px;max-width:min(240px,58%);}
+.staal-item.gelegd{opacity:1;transform:none;}
+.staal-kop{font-family:var(--font);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
+.staal-tekst{font-size:12.5px;color:var(--text);line-height:1.4;}
+.staal-tekst.richting{font-style:italic;color:var(--text-strong);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.staal-kleurband{display:flex;height:44px;width:clamp(120px,16vw,200px);border-radius:9px;overflow:hidden;}
+.staal-kleurband span{display:block;flex:1;}
+.staal-tegel{width:clamp(58px,7vw,80px);height:clamp(58px,7vw,80px);border-radius:9px;background-size:cover;}
 .leeg{color:var(--faint);font-size:14px;padding:40px;text-align:center;font-style:italic;}
 .mockup{position:relative;width:100%;}
-.mockup .achtergrond{width:100%;display:block;}
 .mockup .dessin-overlay{position:absolute;inset:0;background-size:22% auto;background-repeat:repeat;opacity:0;transition:opacity var(--t-traag) ease;}
 .mockup.gelegd .dessin-overlay{opacity:.92;}
+@media (max-width:640px){
+  .tafel-stalen{gap:16px;}
+  .staal-item{max-width:none;flex-basis:100%;}
+}
 #ruimte:not(:empty){margin-top:14px;}
 #ruimte .kaart{background:var(--panel,var(--card));}
 
@@ -291,6 +310,6 @@ body.gestart main{opacity:1;}
   }, 9000);
 })();
 </script>
-<script src="/static/js/ontwerp.js?v=20260712_030000"></script>
+<script src="/static/js/ontwerp.js?v=20260713_150000"></script>
 </body>
 </html>
