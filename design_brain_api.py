@@ -43,6 +43,7 @@ from ontwerpstrategie_capability import maak_ontwerpstrategie_redeneerfunctie
 from conceptvorming_capability import maak_conceptvorming_redeneerfunctie
 from floor_design_capability import maak_floor_design_redeneerfunctie
 from material_planning_capability import maak_material_planning_redeneerfunctie
+from pattern_planning_capability import maak_pattern_planning_redeneerfunctie
 from reasoning_engine import ReasoningEngine, FloorDesign
 from material_planner import MaterialPlanner, MaterialProfile
 from pattern_planner import PatternPlanner, PatternProfile
@@ -476,7 +477,12 @@ def pattern_profiles(gesprek_id, toestand):
         return _ok({"pattern_profiles": [asdict(x) for x in toestand.pattern_profiles]})
     if toestand.material_profile is None:
         return _fout("Bevestig eerst een Material Profile.", 409)
-    resultaat = PatternPlanner().stel_pattern_profiles_voor(
+    # IMP-019: de Pattern Reasoning Boundary is nu configuratie-gestuurd (productie
+    # of deterministische placeholder). Alleen `patroon_generatie` wordt geïnjecteerd;
+    # de sleutel is uitsluitend serverconfig (AB-012, _ai_sleutel); component/
+    # orchestratie ongewijzigd.
+    planner = PatternPlanner(patroon_generatie=maak_pattern_planning_redeneerfunctie(_ai_sleutel()))
+    resultaat = planner.stel_pattern_profiles_voor(
         toestand.design_context, toestand.floor_design, toestand.material_profile)
     if not resultaat.geslaagd:
         return _signalering(resultaat.signaleringen)
