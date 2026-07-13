@@ -120,4 +120,14 @@ Elke uitbreiding is additief: zij voegt een adapter of Experience Layer toe, noo
 
 ---
 
+## Architectuurbesluit (BUILD-025-A)
+
+**BUILD-025 wordt hierbij als architectonisch afgerond beschouwd.** De opgenomen **8-fasen Conversation Experience** (§5: Begroeting → Verkennen → Verdiepen → Samenvatten → Bevestigen → Ontwerpen → Presenteren → Vervolg) vormt de **canonieke gespreksstroom** van de DCOD Studio.
+
+Binnen BUILD-025 worden **bewust geen keuzes** gemaakt over: Speech-to-Text-providers, Text-to-Speech-providers, browser-native versus cloud, latency, implementatietechniek of leveranciers. Deze onderwerpen behoren expliciet tot de latere **implementatiefase** (IMP-020), waar zij een expliciete architectuur-/privacy-/kostenbeslissing van de gebruiker vergen.
+
+**Vaststelling:** de verdere architectuuruitwerking is inmiddels afgerond in **BUILD-026 (Conversation State Architecture)**, **BUILD-027 (Multimodal Experience Architecture)** en **BUILD-028 (Studio UX Architecture)**. Daarmee is de volledige **Studio Experience Architecture** architectonisch vastgesteld. Vanaf dit punt mogen implementaties uitsluitend plaatsvinden **binnen deze goedgekeurde architectuur**, additief en zonder wijziging aan de Design Brain, de contracten of de orchestratie.
+
+---
+
 **Reviewgereed:** dit technisch ontwerp legt de Conversation Experience & Voice Architecture vast als volledig additieve Experience Layer — drie modaliteiten (tekst/spraak/hybride) op dezelfde tekst-invoer, vier gescheiden verantwoordelijkheden (STT, TTS, Conversation Manager, Design Brain) met Voice nadrukkelijk buiten de Design Brain, platform-onafhankelijkheid via de bestaande endpoints/contracten, een op REASONING-001 gestoelde gespreksfilosofie, een gespreksstroom in de bestaande keten, harde architectuurgrenzen (Voice≠Reasoning, Conversation≠Workflow, Experience≠Design Brain) en toekomstvastheid voor mobiel/tablet/AR/VR/camera/LiDAR/nieuwe modellen — zonder enige wijziging aan de Design Brain, de contracten, de orchestratie of de Reasoning Capabilities.
