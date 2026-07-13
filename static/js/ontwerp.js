@@ -111,6 +111,9 @@
     document.body.classList.remove("gestart");
     document.body.removeAttribute("data-sfeer");
     var hi = el("heroInvoer"); if (hi) hi.value = "";
+    state.heroConcept = null;
+    var hcb = el("heroBestand"); if (hcb) hcb.value = "";
+    var hc = el("heroConcept"); if (hc) hc.classList.remove("zichtbaar");
     localStorage.removeItem(LS_KEY);
     state.toestand = null; state.chat = []; state.laatsteVervolgstap = null; state.scenes = null;
     _html = {};
@@ -484,6 +487,50 @@
   var verstuurDebounced = debounce(verstuur, 250);
   el("invoer").addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); verstuurDebounced(); } });
   el("heroInvoer").addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); beginMetHero(); } });
+
+  // ── Concept toevoegen (Experience Layer) ────────────────────────────────────
+  // De '+' opent direct de bestandskiezer; drag & drop op de balk werkt ook.
+  // Het bestandstype wordt client-side herkend voor de bevestiging — de
+  // gebruiker hoeft nooit een type te kiezen. HARDE GRENS (BUILD-030): de balk
+  // stuurt (nog) niets naar de keten; transport/verwerking vergt een backend-
+  // endpoint dat buiten deze Experience-Layer-opdracht valt.
+  (function () {
+    var plus = el("heroPlus"), bestand = el("heroBestand"), wrap = el("heroInvoerWrap"),
+        chip = el("heroConcept"), chipNaam = el("heroConceptNaam"), chipWeg = el("heroConceptWeg");
+    if (!plus || !bestand || !wrap || !chip) return;
+    function typeWoord(f) {
+      var t = (f.type || "").toLowerCase(), n = (f.name || "").toLowerCase();
+      if (t.indexOf("image/") === 0 || /\.(png|jpe?g|gif|webp|hei[cf]|tiff?|bmp|svg)$/.test(n)) return "Beeld";
+      if (t === "application/pdf" || /\.pdf$/.test(n)) return "PDF";
+      if (/\.(ai|eps|psd|indd|sketch|fig)$/.test(n)) return "Ontwerpbestand";
+      if (t.indexOf("text/") === 0 || /\.(docx?|pages|rtf|txt|md)$/.test(n)) return "Document";
+      return "Bestand";
+    }
+    function toon(f) {
+      if (!f) return;
+      state.heroConcept = f;
+      chipNaam.textContent = typeWoord(f) + " toegevoegd — " + f.name;
+      chip.classList.add("zichtbaar");
+    }
+    function wis() { state.heroConcept = null; bestand.value = ""; chip.classList.remove("zichtbaar"); chipNaam.textContent = ""; }
+    plus.addEventListener("click", function () { bestand.click(); });
+    bestand.addEventListener("change", function () { if (bestand.files && bestand.files[0]) toon(bestand.files[0]); });
+    if (chipWeg) chipWeg.addEventListener("click", wis);
+    ["dragenter", "dragover"].forEach(function (ev) {
+      wrap.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); wrap.classList.add("sleep"); });
+    });
+    ["dragleave", "dragend"].forEach(function (ev) {
+      wrap.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); wrap.classList.remove("sleep"); });
+    });
+    wrap.addEventListener("drop", function (e) {
+      e.preventDefault(); e.stopPropagation(); wrap.classList.remove("sleep");
+      var dt = e.dataTransfer; if (dt && dt.files && dt.files[0]) toon(dt.files[0]);
+    });
+    // Buiten de balk gedropte bestanden mogen de pagina nooit vervangen.
+    ["dragover", "drop"].forEach(function (ev) {
+      document.addEventListener(ev, function (e) { if (!wrap.contains(e.target)) e.preventDefault(); });
+    });
+  })();
 
   // ── Foutbegeleiding (mensvriendelijk; nooit AI-infra/technische details) ────
   // AB-012: geen enkele verwijzing naar sleutels, modellen of providers.

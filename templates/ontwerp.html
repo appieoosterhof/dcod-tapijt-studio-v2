@@ -77,15 +77,33 @@ body.gestart #hero{opacity:0;transform:scale(1.03);pointer-events:none;}
 .hero-filosofie span{display:block;}
 .hero-sub{margin:clamp(16px,2.2vh,24px) 0 0;font-size:clamp(15px,1.35vw,19px);font-weight:300;
   color:var(--muted);max-width:34ch;line-height:1.5;}
-.hero-invoer-wrap{margin-top:clamp(28px,4.2vh,48px);display:flex;align-items:center;gap:16px;
-  max-width:640px;border-bottom:1px solid rgba(243,247,244,.28);padding-bottom:8px;}
-#heroInvoer{flex:1;min-width:0;background:transparent;border:none;color:var(--text-strong);font-family:var(--font);
-  font-size:clamp(15px,1.35vw,18px);font-weight:300;padding:8px 0;line-height:1.5;text-overflow:ellipsis;}
-#heroInvoer::placeholder{color:rgba(243,247,244,.5);}
+/* Witte invoerbalk = primaire actie: hoog contrast, Avenir Medium, geen dunne tekst */
+.hero-invoer-wrap{margin-top:clamp(28px,4.2vh,48px);display:flex;align-items:center;gap:8px;
+  max-width:640px;background:rgba(255,255,255,.95);border-radius:16px;padding:7px 8px 7px 12px;
+  box-shadow:0 10px 34px rgba(9,12,11,.24);outline:2px solid transparent;outline-offset:2px;
+  transition:box-shadow var(--t-snel) ease,outline-color var(--t-snel) ease;}
+.hero-invoer-wrap.sleep{outline-color:var(--green);box-shadow:0 12px 40px rgba(9,12,11,.32);}
+.hero-plus{flex:none;width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;background:transparent;
+  color:rgba(22,33,26,.6);font-size:26px;line-height:1;display:flex;align-items:center;justify-content:center;
+  transition:background var(--t-snel) ease,color var(--t-snel) ease;}
+.hero-plus:hover{background:rgba(22,33,26,.08);color:#16211a;}
+.hero-plus:focus-visible{outline:2px solid var(--green);outline-offset:2px;}
+#heroInvoer{flex:1;min-width:0;background:transparent;border:none;color:#141a17;font-family:var(--font);
+  font-size:clamp(15px,1.3vw,17px);font-weight:500;padding:9px 4px;line-height:1.5;text-overflow:ellipsis;}
+#heroInvoer::placeholder{color:rgba(20,26,23,.6);font-weight:500;}
 #heroInvoer:focus{outline:none;}
 .rond{width:52px;height:52px;border-radius:50%;background:var(--green);color:#16211a;font-size:22px;flex:none;
   display:flex;align-items:center;justify-content:center;transition:transform var(--t-snel) ease,background var(--t-snel) ease;}
 .rond:hover{transform:translateY(-2px);background:#b6d29d;}
+.hero-invoer-wrap .rond{width:46px;height:46px;font-size:20px;}
+/* Toegevoegd concept: subtiele, eerlijke bevestiging onder de balk */
+.hero-concept{margin-top:12px;max-width:640px;display:none;align-items:center;gap:10px;
+  font-family:var(--font);font-size:13.5px;color:var(--text);}
+.hero-concept.zichtbaar{display:flex;}
+.hero-concept .naam{flex:1 1 auto;min-width:0;color:var(--green);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hero-concept .weg{flex:none;cursor:pointer;border:none;background:transparent;color:rgba(243,247,244,.55);
+  font-size:15px;line-height:1;padding:2px 4px;transition:color var(--t-snel) ease;}
+.hero-concept .weg:hover{color:var(--text-strong);}
 
 /* Thema-indicatie linksonder (wisselt mee met de achtergrond) */
 .hero-thema{position:absolute;left:clamp(30px,8vw,132px);bottom:clamp(28px,4.6vh,48px);z-index:2;
@@ -227,29 +245,35 @@ body.gestart main{opacity:1;}
 <div id="hero">
   <!-- Vier gerealiseerde projecten = vier werelden; traag overvloeiend -->
   <div class="hero-beelden" aria-hidden="true">
-    <div class="hero-beeld actief" style="background-image:url('/static/img/projecten/project_1.jpg')"></div>
+    <div class="hero-beeld actief" style="background-image:url('/static/img/projecten/project_4.jpg')"></div>
+    <div class="hero-beeld" style="background-image:url('/static/img/projecten/project_1.jpg')"></div>
     <div class="hero-beeld" style="background-image:url('/static/img/projecten/project_2.jpg')"></div>
     <div class="hero-beeld" style="background-image:url('/static/img/projecten/project_3.jpg')"></div>
-    <div class="hero-beeld" style="background-image:url('/static/img/projecten/project_4.jpg')"></div>
   </div>
   <div class="hero-scrim" aria-hidden="true"></div>
 
   <div class="hero-inhoud">
-    <p class="hero-merk">DCOD Dessinator Studio<span class="tm">™</span></p>
+    <p class="hero-merk">DCOD Studio</p>
     <h1 class="hero-belofte"><span>Niet zomaar een vloer.</span><span class="punch">Een verhaal.</span></h1>
     <p class="hero-filosofie"><span>Elk thema.</span><span>Elke ruimte.</span><span>Elk ontwerp verdient een verhaal.</span></p>
     <p class="hero-sub">Van uw eerste gedachte naar een realiseerbaar vloerontwerp.</p>
-    <div class="hero-invoer-wrap">
-      <input type="text" id="heroInvoer" placeholder="Beschrijf de ruimte die u wilt ontwerpen…"/>
-      <button id="heroVerstuur" class="rond" aria-label="Begin">→</button>
+    <div class="hero-invoer-wrap" id="heroInvoerWrap">
+      <button type="button" id="heroPlus" class="hero-plus" aria-label="Concept toevoegen">+</button>
+      <input type="text" id="heroInvoer" placeholder="Beschrijf uw ruimte of ontwerpidee, of voeg uw concept toe…"/>
+      <input type="file" id="heroBestand" hidden aria-hidden="true"/>
+      <button type="button" id="heroVerstuur" class="rond" aria-label="Begin">→</button>
+    </div>
+    <div class="hero-concept" id="heroConcept" aria-live="polite">
+      <span class="naam" id="heroConceptNaam"></span>
+      <button type="button" class="weg" id="heroConceptWeg" aria-label="Concept verwijderen">✕</button>
     </div>
   </div>
 
   <div class="hero-thema" aria-hidden="true">
     <span class="hero-thema-nr">01</span>
     <div>
-      <div class="hero-thema-naam">Werkplekken &amp; Kantoren</div>
-      <div class="hero-thema-tag">Rust • Identiteit • Concentratie</div>
+      <div class="hero-thema-naam">Musea &amp; Bibliotheken</div>
+      <div class="hero-thema-tag">Cultuur • Verhaal • Inspiratie</div>
     </div>
   </div>
 
@@ -289,11 +313,12 @@ body.gestart main{opacity:1;}
 (function(){
   var beelden = [].slice.call(document.querySelectorAll('.hero-beeld'));
   var themas = [
-    ["01","Werkplekken & Kantoren","Rust • Identiteit • Concentratie"],
-    ["02","Hotels & Leisure","Beleving • Warmte • Gastvrijheid"],
-    ["03","Overheid & Publieke Gebouwen","Oriëntatie • Verbinding • Ontmoeting"],
-    ["04","Musea & Bibliotheken","Cultuur • Verhaal • Inspiratie"]
+    ["01","Musea & Bibliotheken","Cultuur • Verhaal • Inspiratie"],
+    ["02","Werkplekken & Kantoren","Rust • Identiteit • Concentratie"],
+    ["03","Hotels & Leisure","Beleving • Warmte • Gastvrijheid"],
+    ["04","Overheid & Publieke Gebouwen","Oriëntatie • Verbinding • Ontmoeting"]
   ];
+  var themaEl = document.querySelector('.hero-thema');
   var nr = document.querySelector('.hero-thema-nr');
   var naam = document.querySelector('.hero-thema-naam');
   var tag = document.querySelector('.hero-thema-tag');
@@ -304,12 +329,18 @@ body.gestart main{opacity:1;}
     beelden[i].classList.remove('actief');
     i = (i + 1) % beelden.length;
     beelden[i].classList.add('actief');
-    if (nr) nr.textContent = themas[i][0];
-    if (naam) naam.textContent = themas[i][1];
-    if (tag) tag.textContent = themas[i][2];
+    // Thema-indicatie laten meevloeien met de 2.6s beeld-crossfade: kort
+    // dimmen, rond het midden van de overgang de tekst wisselen, weer oplichten.
+    if (themaEl) themaEl.style.opacity = '0';
+    setTimeout(function(){
+      if (nr) nr.textContent = themas[i][0];
+      if (naam) naam.textContent = themas[i][1];
+      if (tag) tag.textContent = themas[i][2];
+      if (themaEl) themaEl.style.opacity = '1';
+    }, 1100);
   }, 9000);
 })();
 </script>
-<script src="/static/js/ontwerp.js?v=20260713_150000"></script>
+<script src="/static/js/ontwerp.js?v=20260713_160000"></script>
 </body>
 </html>
