@@ -363,12 +363,26 @@ def bevestig_strategie(gesprek_id, toestand):
     return _ok({"ontwerpstrategie_status": st.status})
 
 
+def _concept_payload(dc) -> dict:
+    """IMP-021 (uit EVAL-001): presenteer naast het Concept ook zijn reeds
+    vastgelegde 'waarom'. De motivering wordt door vorm_concept bewust in de
+    Ontwerpredenering geregistreerd (laag "concept"); het Concept-datamodel en de
+    boundary blijven ongewijzigd. Hier halen we die motivering uit de bestaande
+    Ontwerpredenering en voegen hem additief aan de presentatie toe."""
+    payload = {"concept": asdict(dc.concept)}
+    for beslissing in reversed(dc.ontwerpredenering.beslissingen):
+        if beslissing.get("laag") == "concept" and beslissing.get("reden"):
+            payload["concept_motivering"] = beslissing["reden"]
+            break
+    return payload
+
+
 @design_brain_bp.route("/<gesprek_id>/concept", methods=["POST"])
 @_met_gesprek
 def concept(gesprek_id, toestand):
     # BUILD-023 R1/R6: hergebruik een bestaand Concept (laag 4 = presence-based).
     if toestand.design_context.concept.stijlfamilie:
-        return _ok({"concept": asdict(toestand.design_context.concept)})
+        return _ok(_concept_payload(toestand.design_context))
     # Workflow-gate (BUILD-020 / gelaagde bevestiging): het Concept volgt pas op
     # een vastgestelde Ontwerpstrategie. vorm_concept zelf toetst uitsluitend
     # `aanpak`; deze gate borgt de gezamenlijke vaststelling van laag 3.
@@ -384,7 +398,7 @@ def concept(gesprek_id, toestand):
     if not resultaat.geslaagd:
         return _signalering(resultaat.signaleringen)
     _sla_op(gesprek_id, toestand)  # dc.concept (voorgesteld) + Ontwerpredenering
-    return _ok({"concept": asdict(toestand.design_context.concept)})
+    return _ok(_concept_payload(toestand.design_context))
 
 
 @design_brain_bp.route("/<gesprek_id>/bevestig-concept", methods=["POST"])
