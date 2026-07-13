@@ -172,6 +172,12 @@ def maak_material_planning_redeneerfunctie(
     return kies_redeneerfunctie(
         api_sleutel,
         placeholder_materiaal_generatie,
-        lambda sl: ProductieMateriaalReasoner(AnthropicModelClient(sl)).redeneer,
+        # VAL-004: de materiaal-output (2-3 voorstellen met een afweging over
+        # gebruik/onderhoud/slijtvastheid/akoestiek/comfort/duurzaamheid/productie)
+        # is rijker dan de andere capabilities en overschrijdt de gedeelde default
+        # max_tokens (600), wat de JSON afkapt -> parse-fout -> onterechte terugval.
+        # Ruimere token-limiet voor deze capability; de gedeelde default en de
+        # overige capabilities blijven ongewijzigd.
+        lambda sl: ProductieMateriaalReasoner(AnthropicModelClient(sl, max_tokens=1500)).redeneer,
         modus,
     )
