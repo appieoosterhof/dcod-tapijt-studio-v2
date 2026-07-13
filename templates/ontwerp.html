@@ -51,7 +51,7 @@ body[data-sfeer="organisch"] .sfeer{background:
 /* ── Hero (landingstoestand) ────────────────────────────────────────────────── */
 #hero{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;
   transition:opacity var(--t-traag) ease, transform var(--t-traag) ease;}
-.hero-inner{max-width:720px;text-align:center;}
+.hero-inner{max-width:720px;text-align:center;position:relative;z-index:2;}
 .hero-kop{font-family:var(--serif);font-weight:300;font-size:clamp(30px,5vw,54px);line-height:1.15;color:var(--text-strong);letter-spacing:.3px;}
 .hero-sub{margin-top:18px;font-size:clamp(15px,2vw,18px);color:var(--muted);font-weight:300;}
 .hero-invoer-wrap{margin-top:38px;display:flex;align-items:flex-end;gap:12px;justify-content:center;}
@@ -63,6 +63,15 @@ body[data-sfeer="organisch"] .sfeer{background:
   display:flex;align-items:center;justify-content:center;transition:transform var(--t-snel) ease,opacity var(--t-snel) ease;}
 .rond:hover{transform:translateY(-1px);}
 body.gestart #hero{opacity:0;transform:scale(1.03);pointer-events:none;}
+
+/* ── Hero Experience: sfeerbeelden (eigen DCOD-projecten), traag overvloeiend ── */
+.hero-beelden{position:absolute;inset:0;z-index:0;overflow:hidden;background:var(--diep);}
+.hero-beeld{position:absolute;inset:0;background-size:cover;background-position:center;
+  opacity:0;transition:opacity 2.4s ease-in-out;will-change:opacity;}
+.hero-beeld.actief{opacity:1;}
+.hero-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(9,12,11,.58),rgba(9,12,11,.38) 42%,rgba(9,12,11,.72));}
+@media (prefers-reduced-motion:reduce){.hero-beeld{transition:none;}}
 
 /* ── Atelier ────────────────────────────────────────────────────────────────── */
 header#atelierkop{display:flex;align-items:center;padding:22px 30px;opacity:0;transition:opacity var(--t-traag) ease;}
@@ -161,6 +170,14 @@ body.gestart main{opacity:1;}
 
 <!-- Hero: de eerste indruk, geen formulier -->
 <div id="hero">
+  <!-- Sfeerbeelden: eigen DCOD-projecten waarin de vloer de hoofdrol speelt; traag overvloeiend -->
+  <div class="hero-beelden" aria-hidden="true">
+    <div class="hero-beeld actief" style="background-image:url('/static/img/projecten/project_2.jpg')"></div>
+    <div class="hero-beeld" style="background-image:url('/static/img/projecten/project_4.jpg')"></div>
+    <div class="hero-beeld" style="background-image:url('/static/img/projecten/project_1.jpg')"></div>
+    <div class="hero-beeld" style="background-image:url('/static/img/projecten/project_3.jpg')"></div>
+  </div>
+  <div class="hero-scrim" aria-hidden="true"></div>
   <div class="hero-inner">
     <h1 class="hero-kop">Elke ruimte verdient een verhaal.</h1>
     <p class="hero-sub">Vertel ons uw idee. Samen ontwerpen we een vloer die uw verhaal compleet maakt.</p>
@@ -199,6 +216,21 @@ body.gestart main{opacity:1;}
   </section>
 </main>
 
+<!-- Hero Experience: traag overvloeien tussen de sfeerbeelden (presentatie-only) -->
+<script>
+(function(){
+  var beelden = Array.prototype.slice.call(document.querySelectorAll('.hero-beeld'));
+  if (beelden.length < 2) return;
+  var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (rm && rm.matches) return;            // rust: één statisch sfeerbeeld, geen wissel
+  var i = 0;
+  setInterval(function(){
+    beelden[i].classList.remove('actief');
+    i = (i + 1) % beelden.length;
+    beelden[i].classList.add('actief');
+  }, 9000);                                 // binnen 8–10s; CSS verzorgt de trage fade (2,4s)
+})();
+</script>
 <script src="/static/js/ontwerp.js?v=20260712_030000"></script>
 </body>
 </html>
