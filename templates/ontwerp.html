@@ -48,55 +48,66 @@ body[data-sfeer="organisch"] .sfeer{background:
     radial-gradient(110% 80% at 22% 86%, rgba(190,170,130,.09), transparent 55%),
     linear-gradient(160deg,#0e1210,#161d18 60%,#0c100e);}
 
-/* ── Hero (landingstoestand) ────────────────────────────────────────────────── */
-#hero{position:fixed;inset:0;z-index:20;overflow-y:auto;
+/* ── Hero (landingstoestand): merk eerst, full-screen sfeerfoto ──────────────── */
+#hero{position:fixed;inset:0;z-index:20;overflow:hidden;
   transition:opacity var(--t-traag) ease, transform var(--t-traag) ease;}
-.hero-inner{min-height:100%;width:100%;max-width:1120px;margin:0 auto;position:relative;z-index:2;
-  display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
-  padding:clamp(28px,6vh,56px) clamp(18px,4vw,40px);}
 body.gestart #hero{opacity:0;transform:scale(1.03);pointer-events:none;}
 
-/* Hero-tekst: rustig en ruim, uitsluitend Avenir-gewichten (huisstijl) */
-.hero-kop{font-family:var(--font);font-weight:300;letter-spacing:.2px;color:var(--text-strong);
-  font-size:clamp(31px,5.2vw,58px);line-height:1.5;}
-.hero-kop span{display:block;}
-.hero-kop .accent{font-weight:400;}
+/* Overvloeiende gerealiseerde projecten (de vloer als hoofdrol) */
+.hero-beelden{position:absolute;inset:0;z-index:0;background:var(--diep);}
+.hero-beeld{position:absolute;inset:0;background-size:cover;background-position:center;
+  opacity:0;transition:opacity 2.6s ease-in-out;}
+.hero-beeld.actief{opacity:1;}
+.hero-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;background:
+  linear-gradient(90deg,rgba(9,12,11,.87) 0%,rgba(9,12,11,.58) 42%,rgba(9,12,11,.24) 74%,rgba(9,12,11,.08) 100%),
+  linear-gradient(0deg,rgba(9,12,11,.62) 0%,rgba(9,12,11,0) 30%);}
 
-/* Themakaarten: bestaande projectfoto's, klikbaar; de fotografie leidend */
-.hero-kaarten{margin-top:clamp(34px,6vh,64px);width:100%;display:grid;
-  grid-template-columns:repeat(4,1fr);gap:clamp(12px,1.4vw,18px);}
-.themakaart{position:relative;aspect-ratio:3/4;border-radius:var(--radius-sm);overflow:hidden;
-  background:var(--diep) center/cover no-repeat;background-image:var(--kaart-beeld);
-  border:1px solid rgba(255,255,255,.07);padding:0;text-align:left;
-  transition:transform .5s ease,box-shadow .5s ease;}
-.themakaart::after{content:"";position:absolute;inset:0;pointer-events:none;transition:background .5s ease;
-  background:linear-gradient(180deg,rgba(9,12,11,.10) 0%,rgba(9,12,11,.22) 46%,rgba(9,12,11,.82) 100%);}
-.themakaart:hover,.themakaart:focus-visible{transform:translateY(-5px);box-shadow:0 16px 44px rgba(0,0,0,.42);outline:none;}
-.themakaart:hover::after,.themakaart:focus-visible::after{
-  background:linear-gradient(180deg,rgba(9,12,11,.04) 0%,rgba(9,12,11,.14) 46%,rgba(9,12,11,.70) 100%);}
-.kaart-thema{position:absolute;left:16px;right:14px;bottom:15px;z-index:1;
-  font-family:var(--font);font-weight:600;font-size:clamp(14.5px,1.15vw,16px);line-height:1.3;
-  color:#fff;letter-spacing:.2px;text-shadow:0 1px 5px rgba(0,0,0,.35);}
+/* Tekstblok links -- hiërarchie: merk -> belofte -> filosofie -> functie */
+.hero-inhoud{position:absolute;top:50%;left:clamp(30px,8vw,132px);transform:translateY(-50%);z-index:2;
+  max-width:min(820px,84vw);}
+.hero-merk{font-family:var(--font);font-size:clamp(12px,1vw,14px);font-weight:500;letter-spacing:.34em;
+  text-transform:uppercase;color:var(--green);margin:0 0 clamp(20px,3vh,32px);}
+.hero-merk .tm{font-size:.6em;vertical-align:super;letter-spacing:0;margin-left:.14em;opacity:.85;}
+.hero-belofte{margin:0;font-family:var(--font);font-weight:300;letter-spacing:.1px;color:var(--text-strong);
+  font-size:clamp(42px,6.4vw,92px);line-height:1.08;text-wrap:balance;}
+.hero-belofte span{display:block;}
+.hero-belofte .punch{font-weight:400;}
+.hero-filosofie{margin:clamp(24px,3.4vh,40px) 0 0;font-family:var(--font);font-weight:300;color:#DDE4E0;
+  font-size:clamp(19px,2.05vw,29px);line-height:1.42;}
+.hero-filosofie span{display:block;}
+.hero-sub{margin:clamp(16px,2.2vh,24px) 0 0;font-size:clamp(15px,1.35vw,19px);font-weight:300;
+  color:var(--muted);max-width:34ch;line-height:1.5;}
+.hero-invoer-wrap{margin-top:clamp(28px,4.2vh,48px);display:flex;align-items:center;gap:16px;
+  max-width:640px;border-bottom:1px solid rgba(243,247,244,.28);padding-bottom:8px;}
+#heroInvoer{flex:1;min-width:0;background:transparent;border:none;color:var(--text-strong);font-family:var(--font);
+  font-size:clamp(15px,1.35vw,18px);font-weight:300;padding:8px 0;line-height:1.5;text-overflow:ellipsis;}
+#heroInvoer::placeholder{color:rgba(243,247,244,.5);}
+#heroInvoer:focus{outline:none;}
+.rond{width:52px;height:52px;border-radius:50%;background:var(--green);color:#16211a;font-size:22px;flex:none;
+  display:flex;align-items:center;justify-content:center;transition:transform var(--t-snel) ease,background var(--t-snel) ease;}
+.rond:hover{transform:translateY(-2px);background:#b6d29d;}
 
-/* Secundaire, vrije ingang */
-.hero-of{margin-top:clamp(30px,5vh,52px);color:var(--muted);font-size:14px;letter-spacing:.3px;}
-.hero-invoer-wrap{margin-top:14px;display:flex;align-items:flex-end;gap:12px;justify-content:center;width:100%;}
-#heroInvoer{width:min(560px,86vw);background:transparent;border:none;border-bottom:1px solid var(--line-strong);
-  color:var(--text-strong);font-family:var(--font);font-size:17px;padding:12px 4px;resize:none;text-align:center;line-height:1.5;}
-#heroInvoer::placeholder{color:var(--faint);}
-#heroInvoer:focus{outline:none;border-color:var(--green-dim);}
-.rond{width:46px;height:46px;border-radius:50%;background:var(--green);color:#16211a;font-size:20px;flex:none;
-  display:flex;align-items:center;justify-content:center;transition:transform var(--t-snel) ease,opacity var(--t-snel) ease;}
-.rond:hover{transform:translateY(-1px);}
+/* Thema-indicatie linksonder (wisselt mee met de achtergrond) */
+.hero-thema{position:absolute;left:clamp(30px,8vw,132px);bottom:clamp(28px,4.6vh,48px);z-index:2;
+  display:flex;align-items:baseline;gap:16px;transition:opacity 1.1s ease;}
+.hero-thema-nr{font-family:var(--font);font-size:clamp(13px,1.05vw,15px);font-weight:500;letter-spacing:.1em;
+  color:var(--green);font-variant-numeric:tabular-nums;}
+.hero-thema-naam{font-family:var(--font);font-size:clamp(15px,1.25vw,18px);font-weight:600;letter-spacing:.02em;color:var(--text-strong);}
+.hero-thema-tag{margin-top:6px;font-size:clamp(11.5px,.9vw,13px);font-weight:400;letter-spacing:.2em;
+  text-transform:uppercase;color:rgba(167,197,142,.92);}
 
-/* Responsive: tablet & smartphone -> 2 kolommen, grotere/leesbare kaarttitels */
-@media (max-width:820px){.hero-kaarten{grid-template-columns:repeat(2,1fr);}}
-@media (max-width:520px){
-  .hero-kop{font-size:clamp(29px,7.6vw,40px);line-height:1.45;}
-  .hero-kaarten{gap:12px;margin-top:30px;}
-  .themakaart{aspect-ratio:4/5;}
-  .kaart-thema{font-size:16px;left:13px;right:12px;bottom:12px;}
+/* Copyright rechtsonder, subtiel */
+.hero-copyright{position:absolute;right:clamp(24px,4vw,44px);bottom:clamp(24px,4.6vh,44px);z-index:2;
+  font-family:var(--font);font-size:11px;letter-spacing:.05em;color:rgba(243,247,244,.45);}
+
+@media (max-width:640px){
+  .hero-inhoud{left:24px;right:24px;max-width:none;top:40%;}
+  .hero-belofte{font-size:clamp(34px,9.4vw,48px);}
+  .hero-filosofie{font-size:clamp(17px,4.6vw,22px);}
+  .hero-thema{left:24px;bottom:56px;gap:12px;}
+  .hero-copyright{left:24px;right:auto;bottom:26px;font-size:10.5px;}
 }
+@media (prefers-reduced-motion:reduce){.hero-beeld{transition:none;}.hero-thema{transition:none;}}
 
 /* ── Atelier ────────────────────────────────────────────────────────────────── */
 header#atelierkop{display:flex;align-items:center;padding:22px 30px;opacity:0;transition:opacity var(--t-traag) ease;}
@@ -193,35 +204,37 @@ body.gestart main{opacity:1;}
 <body>
 <div class="sfeer" aria-hidden="true"></div>
 
-<!-- Hero: de eerste indruk — vier werelden als vertrekpunt van een ontwerpgesprek -->
+<!-- Hero: de eerste indruk — merkbelofte boven een full-screen sfeerfoto -->
 <div id="hero">
-  <div class="hero-inner">
-    <h1 class="hero-kop">
-      <span>Elk thema.</span>
-      <span>Elke ruimte.</span>
-      <span class="accent">Elk ontwerp verdient een verhaal.</span>
-    </h1>
-    <!-- Themakaarten: eigen projectfoto's; klik = start het gesprek met dit thema als eerste context -->
-    <div class="hero-kaarten">
-      <button type="button" class="themakaart" data-thema="Ik ontwerp een vloer voor een werkplek- of kantooromgeving." style="--kaart-beeld:url('/static/img/projecten/project_3.jpg')">
-        <span class="kaart-thema">Werkplekken &amp; Kantoren</span>
-      </button>
-      <button type="button" class="themakaart" data-thema="Ik ontwerp een vloer voor een hotel- of leisure-omgeving." style="--kaart-beeld:url('/static/img/projecten/project_2.jpg')">
-        <span class="kaart-thema">Hotels &amp; Leisure</span>
-      </button>
-      <button type="button" class="themakaart" data-thema="Ik ontwerp een vloer voor een overheids- of publiek gebouw." style="--kaart-beeld:url('/static/img/projecten/project_1.jpg')">
-        <span class="kaart-thema">Overheid &amp; Publieke Gebouwen</span>
-      </button>
-      <button type="button" class="themakaart" data-thema="Ik ontwerp een vloer voor een museum of bibliotheek." style="--kaart-beeld:url('/static/img/projecten/project_4.jpg')">
-        <span class="kaart-thema">Musea &amp; Bibliotheken</span>
-      </button>
-    </div>
-    <p class="hero-of">of vertel het in uw eigen woorden</p>
+  <!-- Vier gerealiseerde projecten = vier werelden; traag overvloeiend -->
+  <div class="hero-beelden" aria-hidden="true">
+    <div class="hero-beeld actief" style="background-image:url('/static/img/projecten/project_1.jpg')"></div>
+    <div class="hero-beeld" style="background-image:url('/static/img/projecten/project_2.jpg')"></div>
+    <div class="hero-beeld" style="background-image:url('/static/img/projecten/project_3.jpg')"></div>
+    <div class="hero-beeld" style="background-image:url('/static/img/projecten/project_4.jpg')"></div>
+  </div>
+  <div class="hero-scrim" aria-hidden="true"></div>
+
+  <div class="hero-inhoud">
+    <p class="hero-merk">DCOD Dessinator Studio<span class="tm">™</span></p>
+    <h1 class="hero-belofte"><span>Niet zomaar een vloer.</span><span class="punch">Een verhaal.</span></h1>
+    <p class="hero-filosofie"><span>Elk thema.</span><span>Elke ruimte.</span><span>Elk ontwerp verdient een verhaal.</span></p>
+    <p class="hero-sub">Van uw eerste gedachte naar een realiseerbaar vloerontwerp.</p>
     <div class="hero-invoer-wrap">
-      <textarea id="heroInvoer" rows="1" placeholder="Waar droomt deze ruimte van?"></textarea>
+      <input type="text" id="heroInvoer" placeholder="Beschrijf de ruimte die u wilt ontwerpen…"/>
       <button id="heroVerstuur" class="rond" aria-label="Begin">→</button>
     </div>
   </div>
+
+  <div class="hero-thema" aria-hidden="true">
+    <span class="hero-thema-nr">01</span>
+    <div>
+      <div class="hero-thema-naam">Werkplekken &amp; Kantoren</div>
+      <div class="hero-thema-tag">Rust • Identiteit • Concentratie</div>
+    </div>
+  </div>
+
+  <div class="hero-copyright">© 2026 DCOD Printtapijt</div>
 </div>
 
 <header id="atelierkop">
@@ -252,21 +265,30 @@ body.gestart main{opacity:1;}
   </section>
 </main>
 
-<!-- Themakaart-klik: start het gesprek met dit thema als eerste context (hergebruikt de bestaande start-flow) -->
+<!-- Hero: trage overvloei van de sfeerbeelden + meewisselende thema-indicatie (presentatie-only) -->
 <script>
 (function(){
-  var kaarten = document.querySelectorAll('.themakaart');
-  var invoer = document.getElementById('heroInvoer');
-  var verstuur = document.getElementById('heroVerstuur');
-  if (!kaarten.length || !invoer || !verstuur) return;
-  for (var i = 0; i < kaarten.length; i++) {
-    kaarten[i].addEventListener('click', function () {
-      var thema = this.getAttribute('data-thema');
-      if (!thema) return;
-      invoer.value = thema;      // gekozen wereld = eerste ontwerpcontext (vrij bij te sturen)
-      verstuur.click();          // hergebruikt beginMetHero uit ontwerp.js; geen backend-wijziging
-    });
-  }
+  var beelden = [].slice.call(document.querySelectorAll('.hero-beeld'));
+  var themas = [
+    ["01","Werkplekken & Kantoren","Rust • Identiteit • Concentratie"],
+    ["02","Hotels & Leisure","Beleving • Warmte • Gastvrijheid"],
+    ["03","Overheid & Publieke Gebouwen","Oriëntatie • Verbinding • Ontmoeting"],
+    ["04","Musea & Bibliotheken","Cultuur • Verhaal • Inspiratie"]
+  ];
+  var nr = document.querySelector('.hero-thema-nr');
+  var naam = document.querySelector('.hero-thema-naam');
+  var tag = document.querySelector('.hero-thema-tag');
+  if (beelden.length < 2) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var i = 0;
+  setInterval(function(){
+    beelden[i].classList.remove('actief');
+    i = (i + 1) % beelden.length;
+    beelden[i].classList.add('actief');
+    if (nr) nr.textContent = themas[i][0];
+    if (naam) naam.textContent = themas[i][1];
+    if (tag) tag.textContent = themas[i][2];
+  }, 9000);
 })();
 </script>
 <script src="/static/js/ontwerp.js?v=20260712_030000"></script>
