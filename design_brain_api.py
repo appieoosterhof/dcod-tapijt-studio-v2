@@ -41,6 +41,7 @@ from context_interpreter import interpreteer_context, pas_interpretaties_toe
 from ontwerpstrategie_stap import OntwerpStrategieStap
 from ontwerpstrategie_capability import maak_ontwerpstrategie_redeneerfunctie
 from conceptvorming_capability import maak_conceptvorming_redeneerfunctie
+from floor_design_capability import maak_floor_design_redeneerfunctie
 from reasoning_engine import ReasoningEngine, FloorDesign
 from material_planner import MaterialPlanner, MaterialProfile
 from pattern_planner import PatternPlanner, PatternProfile
@@ -401,7 +402,12 @@ def floor_designs(gesprek_id, toestand):
     # BUILD-023 R1/R4: hergebruik bestaande (niet-stale) Floor Designs.
     if toestand.floor_designs:
         return _ok({"floor_designs": [asdict(x) for x in toestand.floor_designs]})
-    resultaat = ReasoningEngine().genereer_floor_designs(toestand.design_context)
+    # IMP-017: de Floor Design-reasoning boundary (Fase 2) is nu configuratie-
+    # gestuurd (productie of deterministische placeholder). Alleen
+    # `floor_design_generatie` wordt geïnjecteerd; de sleutel is uitsluitend
+    # serverconfig (AB-012, _ai_sleutel); component/orchestratie ongewijzigd.
+    engine = ReasoningEngine(floor_design_generatie=maak_floor_design_redeneerfunctie(_ai_sleutel()))
+    resultaat = engine.genereer_floor_designs(toestand.design_context)
     if not resultaat.geslaagd:
         return _signalering(resultaat.signaleringen)
     toestand.floor_designs = resultaat.floor_designs
